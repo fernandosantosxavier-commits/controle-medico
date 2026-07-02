@@ -290,6 +290,12 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
 .toast.show{opacity:1;}
 .empty{text-align:center;padding:2.5rem;color:#aaa;font-size:12px;}
 #view-dashboard{padding:1rem;background:#fff;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 10px 10px;margin-bottom:1rem;}
+/* Mobile top bar (hidden on desktop) */
+.mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:#1a1d27;align-items:center;gap:12px;padding:0 14px;z-index:150;}
+.mobile-menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+.mobile-topbar-title{color:#fff;font-size:14px;font-weight:700;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+.sidebar-overlay.open{display:block;}
 @media(max-width:900px){
   .sidebar{width:56px;}
   .sidebar-logo p,.nav-section,.nav-item span:not(.nav-icon),.sidebar-user span,.sidebar-logo h2{display:none;}
@@ -299,19 +305,34 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
   .main{margin-left:56px;}
 }
 @media(max-width:600px){
-  .sidebar{display:none;}
+  .mobile-topbar{display:flex;}
+  body{padding-top:52px;}
+  .sidebar{width:230px;min-width:230px;transform:translateX(-100%);transition:transform .25s ease;z-index:200;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-logo p,.nav-section,.nav-item span:not(.nav-icon),.sidebar-user span,.sidebar-logo h2{display:block;}
+  .sidebar-logo{padding:1.2rem 1rem 1rem;}
+  .nav-item{padding:9px 16px;justify-content:flex-start;}
+  .nav-item .nav-icon{width:20px;}
   .main{margin-left:0;}
   .stats,.dash-grid4{grid-template-columns:repeat(2,1fr);}
   .charts-grid,.dash-grid2{grid-template-columns:1fr;}
   .fgrid{grid-template-columns:1fr;}
   .fg.full{grid-column:1;}
   .grid{grid-template-columns:1fr;}
+  .container{padding:1rem .8rem;}
+  .modal{width:100%;max-width:100%;border-radius:12px;}
 }
 </style>
 </head>
 <body>
+<!-- MOBILE TOP BAR -->
+<div class="mobile-topbar">
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menu">&#9776;</button>
+  <span class="mobile-topbar-title">&#129657; Controle Medico</span>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileMenu()"></div>
 <!-- SIDEBAR -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <h2>&#129657; Controle Medico</h2>
     <p>Gestao de atendimentos</p>
@@ -327,12 +348,12 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
     <button class="nav-item" id="nav-nfse" onclick="showTab('nfse',this)"><span class="nav-icon">&#128196;</span> NFS-e</button>
     <button class="nav-item" id="nav-graficos" onclick="showTab('graficos',this)"><span class="nav-icon">&#128202;</span> Graficos</button>
     <div class="nav-section">Acoes</div>
-    <button class="nav-item" onclick="openModal()"><span class="nav-icon">&#10133;</span> Novo atendimento</button>
-    <button class="nav-item" onclick="document.getElementById('ai-file').click()"><span class="nav-icon">&#129302;</span> Importar com IA</button>
-    <button class="nav-item" onclick="document.getElementById('imp-file').click()"><span class="nav-icon">&#128229;</span> Importar Excel</button>
-    <button class="nav-item" onclick="exportXLS()"><span class="nav-icon">&#128202;</span> Exportar Excel</button>
-    <button class="nav-item" onclick="salvarHTML()" style="color:#4ade80;font-weight:700;"><span class="nav-icon">&#128190;</span> Salvar HTML</button>
-    <button class="nav-item" onclick="fbSincronizarTudo()" style="color:#60a5fa;font-weight:700;"><span class="nav-icon">☁️</span> Enviar p/ Nuvem</button>
+    <button class="nav-item" onclick="openModal();closeMobileMenu()"><span class="nav-icon">&#10133;</span> Novo atendimento</button>
+    <button class="nav-item" onclick="document.getElementById('ai-file').click();closeMobileMenu()"><span class="nav-icon">&#129302;</span> Importar com IA</button>
+    <button class="nav-item" onclick="document.getElementById('imp-file').click();closeMobileMenu()"><span class="nav-icon">&#128229;</span> Importar Excel</button>
+    <button class="nav-item" onclick="exportXLS();closeMobileMenu()"><span class="nav-icon">&#128202;</span> Exportar Excel</button>
+    <button class="nav-item" onclick="salvarHTML();closeMobileMenu()" style="color:#4ade80;font-weight:700;"><span class="nav-icon">&#128190;</span> Salvar HTML</button>
+    <button class="nav-item" onclick="fbSincronizarTudo();closeMobileMenu()" style="color:#60a5fa;font-weight:700;"><span class="nav-icon">☁️</span> Enviar p/ Nuvem</button>
     <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="importXLS(event)"/>
     <input type="file" id="ai-file" accept=".xlsx,.xls,.pdf,image/*" style="display:none" onchange="importComIA(event)"/>
   </div>
@@ -696,6 +717,17 @@ function showTab(id, el) {
   if (el && el.classList && el.classList.contains('nav-item')) el.classList.add('active');
   if (id==='graficos') renderCharts();
   if (id==='dashboard') renderDash();
+  closeMobileMenu();
+}
+
+function toggleMobileMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+function closeMobileMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
 // ── Selects ───────────────────────────────────────────────
@@ -908,14 +940,14 @@ function saveAt() {
   const obj={paciente:pac.toUpperCase(),data:document.getElementById('f-data').value,datapag:document.getElementById('f-datapag').value,convenio:document.getElementById('f-conv').value,hospital:document.getElementById('f-hosp').value,atendimento:document.getElementById('f-num').value,tipo:document.getElementById('f-tipo').value,modalidade:document.getElementById('f-modal').value,situacao:document.getElementById('f-sit').value,medico:document.getElementById('f-med').value,valor:document.getElementById('f-val').value,nf:document.getElementById('f-nf').value,vinculo_nf:document.getElementById('f-vnf').value,link_nf:document.getElementById('f-lnf').value,conta:document.getElementById('f-conta').value,obs:document.getElementById('f-obs').value};
   if(editId){const i=records.findIndex(x=>x.id===editId);records[i]={...records[i],...obj};showToast('Atualizado!');}
   else{records.push({id:nextAt++,...obj});showToast('Cadastrado!');}
-  closeModal();render();scheduleSave();const _saved=records.find(x=>x.id===editId||x.id===nextAt-1);if(_saved)fbSalvarRegistro(_saved);
+  closeModal();render();scheduleSave();const _saved=records.find(x=>x.id===editId||x.id===nextAt-1);if(_saved)fbSalvarAtendimento(_saved);
 }
 function delAt(id){
   const r = records.find(x=>x.id===id);
   if (!r) return;
   if (!confirm('Excluir o atendimento de "'+r.paciente+'"?\n\nEsta ação não pode ser desfeita.')) return;
   records = records.filter(x=>x.id!==id);
-  fbDeletarRegistro(id);
+  fbDeletarAtendimento(id);
   render();
   scheduleSave();
   showToast('Atendimento de '+r.paciente+' removido.');
@@ -1410,7 +1442,7 @@ function confirmAI() {
     });
     closeAI(); render(); scheduleSave();
     showToast('NF '+nf+': '+vinculados+' vinculado(s) -> FATURADO, '+novos+' novo(s)!');
-    records.forEach(r=>{ if(String(r.nf||'')===String(nf)) fbSalvarRegistro(r); });
+    records.forEach(r=>{ if(String(r.nf||'')===String(nf)) fbSalvarAtendimento(r); });
     _aiNfData=null; _aiMode='ATENDIMENTO';
     return;
   }
