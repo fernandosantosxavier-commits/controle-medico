@@ -26,6 +26,8 @@ const db  = getFirestore(app);
 function setStatus(txt, color) {
   const el = document.getElementById('fb-status');
   if (el) { el.textContent = txt; if (color) el.style.color = color; }
+  const el2 = document.getElementById('fb-status-mobile');
+  if (el2) { el2.textContent = txt; if (color) el2.style.color = color; }
 }
 
 async function enviarColecao(colName, items, keyFn) {
@@ -116,18 +118,7 @@ async function carregarDoFirestore() {
 
 window.addEventListener('load', () => {
   setTimeout(() => {
-    try {
-      const local = localStorage.getItem('cm-extra');
-      const parsed = local ? JSON.parse(local) : null;
-      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        setStatus('Local', '#60a5fa');
-        console.log('Usando dados locais:', parsed.length, 'registros extras');
-      } else {
-        carregarDoFirestore();
-      }
-    } catch(e) {
-      carregarDoFirestore();
-    }
+    carregarDoFirestore();
   }, 1000);
 });
 </script>
@@ -329,6 +320,7 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
 <div class="mobile-topbar">
   <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menu">&#9776;</button>
   <span class="mobile-topbar-title">&#129657; Controle Medico</span>
+  <span id="fb-status-mobile" style="margin-left:auto;font-size:11px;color:#94a3b8;">🔄 Conectando...</span>
 </div>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileMenu()"></div>
 <!-- SIDEBAR -->
@@ -640,9 +632,9 @@ const SIT_CLS = {'EM ABERTO':'b-ab','FATURADO':'b-ft','PAGO':'b-pg','CANCELADO':
 const SIT_CLR = {'EM ABERTO':'#f59e0b','FATURADO':'#7c3aed','PAGO':'#059669','CANCELADO':'#dc2626'};
 const K_MED='cm-med', K_HOS='cm-hos', K_NF='cm-nfse', K_EX='cm-extra';
 
-let records = [...BASE];
-let medicos = [], hospitais = [], nfseData = [...BASE_NFSE];
-let nextAt = 114, nextMed = 1, nextHosp = 1;
+var records = [...BASE];
+var medicos = [], hospitais = [], nfseData = [...BASE_NFSE];
+var nextAt = 114, nextMed = 1, nextHosp = 1;
 let editId = null, editMedId = null, editHospId = null;
 let sortCol = null, sortDir = 1;
 let saveTimer = null;
@@ -682,6 +674,11 @@ function scheduleSave() {
       localStorage.setItem(K_MED, JSON.stringify({m:medicos,n:nextMed}));
       localStorage.setItem(K_HOS, JSON.stringify({h:hospitais,n:nextHosp}));
       setSaveInd('saved');
+      // Expõe o estado atual para o modulo do Firebase (senao ele nunca ve as edicoes)
+      window.records = records;
+      window.medicos = medicos;
+      window.hospitais = hospitais;
+      window.nfseData = nfseData;
       // Auto-sincroniza com Firebase
       if (window.fbSincronizarTudo) window.fbSincronizarTudo();
     } catch(e) { setSaveInd('error'); }
@@ -971,7 +968,7 @@ function renderHosp(){const q=(document.getElementById('hosp-q')||{}).value?.toL
 function exportHospXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['Nome','CNPJ','Telefone','Endereco','Cidade','Estado','Email'],...hospitais.map(h=>[h.nome,h.cnpj,h.telefone,h.endereco,h.cidade,h.estado,h.email])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Hospitais',ws);XLSX.writeFile(wb,'hospitais.xlsx');showToast('Exportado!');}
 
 // NFS-e
-function importNfse(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});if(rows.length<2){showToast('Arquivo vazio.','error');return;}const hdr=rows[0].map(h=>String(h||'').trim());const ci=n=>hdr.findIndex(h=>h===n);const iNf=ci('Nº NFS-e'),iDt=ci('Data Hora NFE'),iSit=ci('Situação da Nota Fiscal'),iVs=ci('Valor dos Serviços'),iVt=ci('Valor Total Recebido'),iTom=ci('Razão Social do Tomador'),iGuia=ci('Nº da Guia'),iIss=ci('ISS Retido'),iRep=ci('Repasse do Plano de Saúde'),iDisc=ci('Discriminação dos Serviços');const imported=[];for(let i=1;i<rows.length;i++){const r=rows[i];const nf=String(r[iNf]||'').trim();if(!nf||nf==='0')continue;imported.push({nf,data:String(r[iDt]||'').trim(),situacao:String(r[iSit]||'T').trim(),tomador:String(r[iTom]||'').trim(),valor:parseFloat(String(r[iVs]||'0').replace(',','.'))||0,valorTotal:parseFloat(String(r[iVt]||'0').replace(',','.'))||0,iss:parseFloat(String(r[iIss]||'0').replace(',','.'))||0,repasse:parseFloat(String(r[iRep]||'0').replace(',','.'))||0,guia:String(r[iGuia]||'').trim(),discriminacao:String(r[iDisc]||'').trim().substring(0,200)});}if(!imported.length){showToast('Nenhuma NFS-e.','error');event.target.value='';return;}const modo=confirm(imported.length+' NFS-e(s).\nOK = Adicionar\nCancelar = Substituir');nfseData=modo?[...nfseData,...imported]:imported;try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}renderNfse();showToast(imported.length+' NFS-e(s) importada(s)!');}catch(err){showToast('Erro: '+err.message,'error');}event.target.value='';};reader.readAsArrayBuffer(file);}
+function importNfse(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});if(rows.length<2){showToast('Arquivo vazio.','error');return;}const hdr=rows[0].map(h=>String(h||'').trim());const ci=n=>hdr.findIndex(h=>h===n);const iNf=ci('Nº NFS-e'),iDt=ci('Data Hora NFE'),iSit=ci('Situação da Nota Fiscal'),iVs=ci('Valor dos Serviços'),iVt=ci('Valor Total Recebido'),iTom=ci('Razão Social do Tomador'),iGuia=ci('Nº da Guia'),iIss=ci('ISS Retido'),iRep=ci('Repasse do Plano de Saúde'),iDisc=ci('Discriminação dos Serviços');const imported=[];for(let i=1;i<rows.length;i++){const r=rows[i];const nf=String(r[iNf]||'').trim();if(!nf||nf==='0')continue;imported.push({nf,data:String(r[iDt]||'').trim(),situacao:String(r[iSit]||'T').trim(),tomador:String(r[iTom]||'').trim(),valor:parseFloat(String(r[iVs]||'0').replace(',','.'))||0,valorTotal:parseFloat(String(r[iVt]||'0').replace(',','.'))||0,iss:parseFloat(String(r[iIss]||'0').replace(',','.'))||0,repasse:parseFloat(String(r[iRep]||'0').replace(',','.'))||0,guia:String(r[iGuia]||'').trim(),discriminacao:String(r[iDisc]||'').trim().substring(0,200)});}if(!imported.length){showToast('Nenhuma NFS-e.','error');event.target.value='';return;}const modo=confirm(imported.length+' NFS-e(s).\nOK = Adicionar\nCancelar = Substituir');nfseData=modo?[...nfseData,...imported]:imported;try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}scheduleSave();renderNfse();showToast(imported.length+' NFS-e(s) importada(s)!');}catch(err){showToast('Erro: '+err.message,'error');}event.target.value='';};reader.readAsArrayBuffer(file);}
 
 let nfSortCol = null, nfSortDir = 1;
 
@@ -1079,6 +1076,7 @@ function toggleNfPago(nf){
   if(!nfseData[i].pago) nfseData[i].dataPag='';
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   const count = syncAtendimentosNf(nf, nfseData[i].pago, nfseData[i].dataPag||'');
+  scheduleSave();
   renderNfse();
   const msg = nfseData[i].pago
     ? 'NF '+nf+' marcada como paga! '+count+' atendimento(s) → PAGO'
@@ -1092,6 +1090,7 @@ function setNfDataPag(nf,val){
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   // Sincroniza data de pagamento nos atendimentos se já estiver paga
   if (nfseData[i].pago) syncAtendimentosNf(nf, true, val);
+  scheduleSave();
   showToast('Data de pagamento salva!');
 }
 
@@ -1099,6 +1098,7 @@ function delNfse(nf){
   if(!confirm('Excluir esta NFS-e?'))return;
   nfseData=nfseData.filter(n=>String(n.nf)!==String(nf));
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
+  scheduleSave();
   renderNfse(); showToast('NFS-e removida.');
 }
 
