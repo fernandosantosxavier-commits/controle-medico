@@ -256,6 +256,7 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
 /* Dashboard */
 .dash-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;}
 .dash-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dash-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .dash-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem;}
 .dash-lbl{font-size:10px;color:#888;font-weight:600;text-transform:uppercase;margin-bottom:4px;}
 .dash-val{font-size:26px;font-weight:700;}
@@ -294,6 +295,7 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
   .nav-item{padding:10px;justify-content:center;}
   .nav-item .nav-icon{width:auto;}
   .main{margin-left:56px;}
+  .dash-grid3{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:600px){
   .mobile-topbar{display:flex;}
@@ -306,7 +308,7 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
   .nav-item .nav-icon{width:20px;}
   .main{margin-left:0;}
   .stats,.dash-grid4{grid-template-columns:repeat(2,1fr);}
-  .charts-grid,.dash-grid2{grid-template-columns:1fr;}
+  .charts-grid,.dash-grid2,.dash-grid3{grid-template-columns:1fr;}
   .fgrid{grid-template-columns:1fr;}
   .fg.full{grid-column:1;}
   .grid{grid-template-columns:1fr;}
@@ -774,11 +776,12 @@ function renderDash() {
   const vFt=ft.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const vPg=pg.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const nfNorm=nfseData.filter(n=>n.situacao!=='C');
-  const byConv={},byMed={};
-  records.forEach(r=>{ byConv[r.convenio]=(byConv[r.convenio]||0)+1; if(r.medico) byMed[r.medico]=(byMed[r.medico]||0)+1; });
+  const byConv={},byMed={},byHosp={};
+  records.forEach(r=>{ byConv[r.convenio]=(byConv[r.convenio]||0)+1; if(r.medico) byMed[r.medico]=(byMed[r.medico]||0)+1; if(r.hospital) byHosp[r.hospital]=(byHosp[r.hospital]||0)+1; });
   const topC=Object.entries(byConv).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topM=Object.entries(byMed).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const mc=topC[0]?topC[0][1]:1, mm2=topM[0]?topM[0][1]:1;
+  const topH=Object.entries(byHosp).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const mc=topC[0]?topC[0][1]:1, mm2=topM[0]?topM[0][1]:1, mh=topH[0]?topH[0][1]:1;
   const cls=['#185FA5','#7c3aed','#065f46','#b45309','#dc2626'];
   const semVal=ab.filter(r=>!r.valor).length, semNF=ft.filter(r=>!r.nf).length;
   document.getElementById('dash-content').innerHTML=
@@ -793,9 +796,10 @@ function renderDash() {
     '</div>'+
     (semVal>0||semNF>0?'<div style="margin-bottom:1rem;">'+(semVal>0?'<div class="alert-item">&#9888;&#65039; '+semVal+' atendimento(s) em aberto sem valor cadastrado</div>':'')+
     (semNF>0?'<div class="alert-item">&#9888;&#65039; '+semNF+' atendimento(s) faturado(s) sem numero de NF</div>':'')+'</div>':'')+
-    '<div class="dash-grid2" style="margin-bottom:1rem;">'+
+    '<div class="dash-grid3" style="margin-bottom:1rem;">'+
       '<div class="chart-card"><h3>Top convenios</h3>'+topC.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mc*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
       '<div class="chart-card"><h3>Top medicos</h3>'+topM.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mm2*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
+      '<div class="chart-card"><h3>Top hospitais</h3>'+topH.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mh*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
     '</div>'+
     '<div class="chart-card"><h3>Ultimos atendimentos</h3>'+
     '<div style="overflow-x:auto;">'+
@@ -1106,14 +1110,14 @@ function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet
 
 // Graficos
 function renderCharts(){
-  const byConv={},bySit={},byMed={};
-  records.forEach(r=>{byConv[r.convenio]=(byConv[r.convenio]||0)+1;bySit[r.situacao]=(bySit[r.situacao]||0)+1;if(r.medico)byMed[r.medico]=(byMed[r.medico]||0)+1;});
+  const byConv={},bySit={},byMed={},byHosp={};
+  records.forEach(r=>{byConv[r.convenio]=(byConv[r.convenio]||0)+1;bySit[r.situacao]=(bySit[r.situacao]||0)+1;if(r.medico)byMed[r.medico]=(byMed[r.medico]||0)+1;if(r.hospital)byHosp[r.hospital]=(byHosp[r.hospital]||0)+1;});
   const cls=['#185FA5','#059669','#b45309','#dc2626','#7c3aed','#0f766e'];
   function barC(title,obj,cs){const mx=Math.max(...Object.values(obj),1);return'<div class="chart-card"><h3>'+title+'</h3>'+Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mx*100)+'%;background:'+cs[i%cs.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>';}
   const tot=records.length||1;let off=0;
   const paths=Object.entries(bySit).map(([k,v])=>{const pct=v/tot,r=46,cx=55,cy=55,a1=off*Math.PI*2-Math.PI/2,a2=(off+pct)*Math.PI*2-Math.PI/2,x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1),x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2),lg=pct>.5?1:0;off+=pct;return'<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+lg+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+(SIT_CLR[k]||'#888')+'" stroke="#fff" stroke-width="2"/>';}).join('');
   const pie='<div class="chart-card"><h3>Por situacao</h3><div class="pie-wrap"><svg width="110" height="110" viewBox="0 0 110 110">'+paths+'</svg><div class="legend">'+Object.entries(bySit).map(([k,v])=>'<div class="leg-row"><div class="leg-dot" style="background:'+(SIT_CLR[k]||'#888')+'"></div><span>'+(SIT_LBL[k]||k)+' — <strong>'+v+'</strong></span></div>').join('')+'</div></div></div>';
-  document.getElementById('charts').innerHTML=barC('Por convenio',byConv,cls)+pie+barC('Por medico',byMed,['#7c3aed','#0f766e','#dc2626','#b45309']);
+  document.getElementById('charts').innerHTML=barC('Por convenio',byConv,cls)+pie+barC('Por medico',byMed,['#7c3aed','#0f766e','#dc2626','#b45309'])+barC('Por hospital',byHosp,['#0891b2','#65a30d','#c026d3','#ea580c','#4338ca']);
 }
 
 // Import/Export Excel
