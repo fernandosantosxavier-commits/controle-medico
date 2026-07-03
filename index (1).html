@@ -26,6 +26,8 @@ const db  = getFirestore(app);
 function setStatus(txt, color) {
   const el = document.getElementById('fb-status');
   if (el) { el.textContent = txt; if (color) el.style.color = color; }
+  const el2 = document.getElementById('fb-status-mobile');
+  if (el2) { el2.textContent = txt; if (color) el2.style.color = color; }
 }
 
 async function enviarColecao(colName, items, keyFn) {
@@ -116,18 +118,7 @@ async function carregarDoFirestore() {
 
 window.addEventListener('load', () => {
   setTimeout(() => {
-    try {
-      const local = localStorage.getItem('cm-extra');
-      const parsed = local ? JSON.parse(local) : null;
-      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        setStatus('Local', '#60a5fa');
-        console.log('Usando dados locais:', parsed.length, 'registros extras');
-      } else {
-        carregarDoFirestore();
-      }
-    } catch(e) {
-      carregarDoFirestore();
-    }
+    carregarDoFirestore();
   }, 1000);
 });
 </script>
@@ -265,6 +256,7 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
 /* Dashboard */
 .dash-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;}
 .dash-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dash-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .dash-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem;}
 .dash-lbl{font-size:10px;color:#888;font-weight:600;text-transform:uppercase;margin-bottom:4px;}
 .dash-val{font-size:26px;font-weight:700;}
@@ -290,6 +282,12 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
 .toast.show{opacity:1;}
 .empty{text-align:center;padding:2.5rem;color:#aaa;font-size:12px;}
 #view-dashboard{padding:1rem;background:#fff;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 10px 10px;margin-bottom:1rem;}
+/* Mobile top bar (hidden on desktop) */
+.mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:#1a1d27;align-items:center;gap:12px;padding:0 14px;z-index:150;}
+.mobile-menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+.mobile-topbar-title{color:#fff;font-size:14px;font-weight:700;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+.sidebar-overlay.open{display:block;}
 @media(max-width:900px){
   .sidebar{width:56px;}
   .sidebar-logo p,.nav-section,.nav-item span:not(.nav-icon),.sidebar-user span,.sidebar-logo h2{display:none;}
@@ -297,21 +295,38 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
   .nav-item{padding:10px;justify-content:center;}
   .nav-item .nav-icon{width:auto;}
   .main{margin-left:56px;}
+  .dash-grid3{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:600px){
-  .sidebar{display:none;}
+  .mobile-topbar{display:flex;}
+  body{padding-top:52px;overflow-x:hidden;}
+  .sidebar{width:230px;min-width:230px;transform:translateX(-100%);transition:transform .25s ease;z-index:200;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-logo p,.nav-section,.nav-item span:not(.nav-icon),.sidebar-user span,.sidebar-logo h2{display:block;}
+  .sidebar-logo{padding:1.2rem 1rem 1rem;}
+  .nav-item{padding:9px 16px;justify-content:flex-start;}
+  .nav-item .nav-icon{width:20px;}
   .main{margin-left:0;}
   .stats,.dash-grid4{grid-template-columns:repeat(2,1fr);}
-  .charts-grid,.dash-grid2{grid-template-columns:1fr;}
+  .charts-grid,.dash-grid2,.dash-grid3{grid-template-columns:1fr;}
   .fgrid{grid-template-columns:1fr;}
   .fg.full{grid-column:1;}
   .grid{grid-template-columns:1fr;}
+  .container{padding:1rem .8rem;}
+  .modal{width:100%;max-width:100%;border-radius:12px;}
 }
 </style>
 </head>
 <body>
+<!-- MOBILE TOP BAR -->
+<div class="mobile-topbar">
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menu">&#9776;</button>
+  <span class="mobile-topbar-title">&#129657; Controle Medico</span>
+  <span id="fb-status-mobile" style="margin-left:auto;font-size:11px;color:#94a3b8;">🔄 Conectando...</span>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileMenu()"></div>
 <!-- SIDEBAR -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <h2>&#129657; Controle Medico</h2>
     <p>Gestao de atendimentos</p>
@@ -327,12 +342,12 @@ tbody td{padding:7px 8px;color:#222;overflow:hidden;text-overflow:ellipsis;white
     <button class="nav-item" id="nav-nfse" onclick="showTab('nfse',this)"><span class="nav-icon">&#128196;</span> NFS-e</button>
     <button class="nav-item" id="nav-graficos" onclick="showTab('graficos',this)"><span class="nav-icon">&#128202;</span> Graficos</button>
     <div class="nav-section">Acoes</div>
-    <button class="nav-item" onclick="openModal()"><span class="nav-icon">&#10133;</span> Novo atendimento</button>
-    <button class="nav-item" onclick="document.getElementById('ai-file').click()"><span class="nav-icon">&#129302;</span> Importar com IA</button>
-    <button class="nav-item" onclick="document.getElementById('imp-file').click()"><span class="nav-icon">&#128229;</span> Importar Excel</button>
-    <button class="nav-item" onclick="exportXLS()"><span class="nav-icon">&#128202;</span> Exportar Excel</button>
-    <button class="nav-item" onclick="salvarHTML()" style="color:#4ade80;font-weight:700;"><span class="nav-icon">&#128190;</span> Salvar HTML</button>
-    <button class="nav-item" onclick="fbSincronizarTudo()" style="color:#60a5fa;font-weight:700;"><span class="nav-icon">☁️</span> Enviar p/ Nuvem</button>
+    <button class="nav-item" onclick="openModal();closeMobileMenu()"><span class="nav-icon">&#10133;</span> Novo atendimento</button>
+    <button class="nav-item" onclick="document.getElementById('ai-file').click();closeMobileMenu()"><span class="nav-icon">&#129302;</span> Importar com IA</button>
+    <button class="nav-item" onclick="document.getElementById('imp-file').click();closeMobileMenu()"><span class="nav-icon">&#128229;</span> Importar Excel</button>
+    <button class="nav-item" onclick="exportXLS();closeMobileMenu()"><span class="nav-icon">&#128202;</span> Exportar Excel</button>
+    <button class="nav-item" onclick="salvarHTML();closeMobileMenu()" style="color:#4ade80;font-weight:700;"><span class="nav-icon">&#128190;</span> Salvar HTML</button>
+    <button class="nav-item" onclick="fbSincronizarTudo();closeMobileMenu()" style="color:#60a5fa;font-weight:700;"><span class="nav-icon">☁️</span> Enviar p/ Nuvem</button>
     <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="importXLS(event)"/>
     <input type="file" id="ai-file" accept=".xlsx,.xls,.pdf,image/*" style="display:none" onchange="importComIA(event)"/>
   </div>
@@ -619,9 +634,9 @@ const SIT_CLS = {'EM ABERTO':'b-ab','FATURADO':'b-ft','PAGO':'b-pg','CANCELADO':
 const SIT_CLR = {'EM ABERTO':'#f59e0b','FATURADO':'#7c3aed','PAGO':'#059669','CANCELADO':'#dc2626'};
 const K_MED='cm-med', K_HOS='cm-hos', K_NF='cm-nfse', K_EX='cm-extra';
 
-let records = [...BASE];
-let medicos = [], hospitais = [], nfseData = [...BASE_NFSE];
-let nextAt = 114, nextMed = 1, nextHosp = 1;
+var records = [...BASE];
+var medicos = [], hospitais = [], nfseData = [...BASE_NFSE];
+var nextAt = 114, nextMed = 1, nextHosp = 1;
 let editId = null, editMedId = null, editHospId = null;
 let sortCol = null, sortDir = 1;
 let saveTimer = null;
@@ -661,6 +676,11 @@ function scheduleSave() {
       localStorage.setItem(K_MED, JSON.stringify({m:medicos,n:nextMed}));
       localStorage.setItem(K_HOS, JSON.stringify({h:hospitais,n:nextHosp}));
       setSaveInd('saved');
+      // Expõe o estado atual para o modulo do Firebase (senao ele nunca ve as edicoes)
+      window.records = records;
+      window.medicos = medicos;
+      window.hospitais = hospitais;
+      window.nfseData = nfseData;
       // Auto-sincroniza com Firebase
       if (window.fbSincronizarTudo) window.fbSincronizarTudo();
     } catch(e) { setSaveInd('error'); }
@@ -696,6 +716,17 @@ function showTab(id, el) {
   if (el && el.classList && el.classList.contains('nav-item')) el.classList.add('active');
   if (id==='graficos') renderCharts();
   if (id==='dashboard') renderDash();
+  closeMobileMenu();
+}
+
+function toggleMobileMenu() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
+function closeMobileMenu() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
 // ── Selects ───────────────────────────────────────────────
@@ -745,11 +776,12 @@ function renderDash() {
   const vFt=ft.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const vPg=pg.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const nfNorm=nfseData.filter(n=>n.situacao!=='C');
-  const byConv={},byMed={};
-  records.forEach(r=>{ byConv[r.convenio]=(byConv[r.convenio]||0)+1; if(r.medico) byMed[r.medico]=(byMed[r.medico]||0)+1; });
+  const byConv={},byMed={},byHosp={};
+  records.forEach(r=>{ byConv[r.convenio]=(byConv[r.convenio]||0)+1; if(r.medico) byMed[r.medico]=(byMed[r.medico]||0)+1; if(r.hospital) byHosp[r.hospital]=(byHosp[r.hospital]||0)+1; });
   const topC=Object.entries(byConv).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topM=Object.entries(byMed).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const mc=topC[0]?topC[0][1]:1, mm2=topM[0]?topM[0][1]:1;
+  const topH=Object.entries(byHosp).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const mc=topC[0]?topC[0][1]:1, mm2=topM[0]?topM[0][1]:1, mh=topH[0]?topH[0][1]:1;
   const cls=['#185FA5','#7c3aed','#065f46','#b45309','#dc2626'];
   const semVal=ab.filter(r=>!r.valor).length, semNF=ft.filter(r=>!r.nf).length;
   document.getElementById('dash-content').innerHTML=
@@ -764,15 +796,17 @@ function renderDash() {
     '</div>'+
     (semVal>0||semNF>0?'<div style="margin-bottom:1rem;">'+(semVal>0?'<div class="alert-item">&#9888;&#65039; '+semVal+' atendimento(s) em aberto sem valor cadastrado</div>':'')+
     (semNF>0?'<div class="alert-item">&#9888;&#65039; '+semNF+' atendimento(s) faturado(s) sem numero de NF</div>':'')+'</div>':'')+
-    '<div class="dash-grid2" style="margin-bottom:1rem;">'+
+    '<div class="dash-grid3" style="margin-bottom:1rem;">'+
       '<div class="chart-card"><h3>Top convenios</h3>'+topC.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mc*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
       '<div class="chart-card"><h3>Top medicos</h3>'+topM.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mm2*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
+      '<div class="chart-card"><h3>Top hospitais</h3>'+topH.map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mh*100)+'%;background:'+cls[i%cls.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>'+
     '</div>'+
     '<div class="chart-card"><h3>Ultimos atendimentos</h3>'+
-    '<table style="width:100%;font-size:12px;border-collapse:collapse;">'+
+    '<div style="overflow-x:auto;">'+
+    '<table style="width:100%;font-size:12px;border-collapse:collapse;min-width:520px;">'+
     '<tr style="background:#f8f9fa;"><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;">Paciente</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;">Data</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;">Convenio</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;">Situacao</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;">Valor</th></tr>'+
-    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:6px 8px;">'+r.paciente+'</td><td style="padding:6px 8px;">'+fd(r.data)+'</td><td style="padding:6px 8px;">'+r.convenio+'</td><td style="padding:6px 8px;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
-    '</table></div>';
+    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:6px 8px;white-space:nowrap;">'+r.paciente+'</td><td style="padding:6px 8px;white-space:nowrap;">'+fd(r.data)+'</td><td style="padding:6px 8px;white-space:nowrap;">'+r.convenio+'</td><td style="padding:6px 8px;white-space:nowrap;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;white-space:nowrap;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
+    '</table></div></div>';
 }
 
 // ── Render atendimentos ───────────────────────────────────
@@ -908,14 +942,14 @@ function saveAt() {
   const obj={paciente:pac.toUpperCase(),data:document.getElementById('f-data').value,datapag:document.getElementById('f-datapag').value,convenio:document.getElementById('f-conv').value,hospital:document.getElementById('f-hosp').value,atendimento:document.getElementById('f-num').value,tipo:document.getElementById('f-tipo').value,modalidade:document.getElementById('f-modal').value,situacao:document.getElementById('f-sit').value,medico:document.getElementById('f-med').value,valor:document.getElementById('f-val').value,nf:document.getElementById('f-nf').value,vinculo_nf:document.getElementById('f-vnf').value,link_nf:document.getElementById('f-lnf').value,conta:document.getElementById('f-conta').value,obs:document.getElementById('f-obs').value};
   if(editId){const i=records.findIndex(x=>x.id===editId);records[i]={...records[i],...obj};showToast('Atualizado!');}
   else{records.push({id:nextAt++,...obj});showToast('Cadastrado!');}
-  closeModal();render();scheduleSave();const _saved=records.find(x=>x.id===editId||x.id===nextAt-1);if(_saved)fbSalvarRegistro(_saved);
+  closeModal();render();scheduleSave();const _saved=records.find(x=>x.id===editId||x.id===nextAt-1);if(_saved)fbSalvarAtendimento(_saved);
 }
 function delAt(id){
   const r = records.find(x=>x.id===id);
   if (!r) return;
   if (!confirm('Excluir o atendimento de "'+r.paciente+'"?\n\nEsta ação não pode ser desfeita.')) return;
   records = records.filter(x=>x.id!==id);
-  fbDeletarRegistro(id);
+  fbDeletarAtendimento(id);
   render();
   scheduleSave();
   showToast('Atendimento de '+r.paciente+' removido.');
@@ -927,7 +961,7 @@ function closeMedModal(){document.getElementById('medModalBg').classList.remove(
 function saveMed(){const n=document.getElementById('fm-nome').value.trim();if(!n){alert('Informe o nome.');return;}const obj={nome:n.toUpperCase(),crm:document.getElementById('fm-crm').value.trim(),especialidade:document.getElementById('fm-esp').value.trim().toUpperCase(),telefone:document.getElementById('fm-tel').value.trim(),email:document.getElementById('fm-email').value.trim(),obs:document.getElementById('fm-obs').value.trim()};if(editMedId){const i=medicos.findIndex(x=>x.id===editMedId);medicos[i]={...medicos[i],...obj};showToast('Medico atualizado!');}else{medicos.push({id:nextMed++,...obj});showToast('Medico cadastrado!');}closeMedModal();renderMed();updateMedSel();scheduleSave();}
 function delMed(id){if(!confirm('Excluir?'))return;medicos=medicos.filter(m=>m.id!==id);renderMed();updateMedSel();scheduleSave();showToast('Removido.');}
 function renderMed(){const q=(document.getElementById('med-q')||{}).value?.toLowerCase()||'';const g=document.getElementById('med-grid');const f=medicos.filter(m=>!q||m.nome.toLowerCase().includes(q)||(m.crm||'').toLowerCase().includes(q));if(!f.length){g.innerHTML='<div class="empty-grid">Nenhum medico '+(medicos.length?'encontrado':'cadastrado')+'.</div>';return;}g.innerHTML=f.map(m=>'<div class="card"><div class="card-name">'+m.nome+'</div>'+(m.crm?'<div class="card-sub">CRM: '+m.crm+'</div>':'')+(m.especialidade?'<div style="font-size:12px;color:#185FA5;font-weight:600;">'+m.especialidade+'</div>':'')+'<div class="card-info">'+(m.telefone?'<span>Tel: '+m.telefone+'</span>':'')+(m.email?'<span>'+m.email+'</span>':'')+'</div><div class="card-actions"><button class="btn" style="font-size:11px;padding:4px 8px;" onclick="openMedModal('+m.id+')">Editar</button><button class="btn btn-red" onclick="delMed('+m.id+')">Excluir</button></div></div>').join('');}
-function exportMedXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['Nome','CRM','Especialidade','Telefone','Email'],...medicos.map(m=>[m.nome,m.crm,m.especialidade,m.telefone,m.email])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Medicos',ws);XLSX.writeFile(wb,'medicos.xlsx');showToast('Exportado!');}
+function exportMedXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['Nome','CRM','Especialidade','Telefone','Email'],...medicos.map(m=>[m.nome,m.crm,m.especialidade,m.telefone,m.email])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Medicos');XLSX.writeFile(wb,'medicos.xlsx');showToast('Exportado!');}
 
 // CRUD Hosp
 function openHospModal(id){editHospId=id||null;const h=id?hospitais.find(x=>x.id===id):{nome:'',cnpj:'',telefone:'',endereco:'',cidade:'Sao Paulo',estado:'SP',email:'',site:'',obs:''};document.getElementById('hosp-title').textContent=id?'Editar hospital':'Novo hospital';document.getElementById('fh-nome').value=h.nome||'';document.getElementById('fh-cnpj').value=h.cnpj||'';document.getElementById('fh-tel').value=h.telefone||'';document.getElementById('fh-end').value=h.endereco||'';document.getElementById('fh-cidade').value=h.cidade||'';document.getElementById('fh-uf').value=h.estado||'SP';document.getElementById('fh-email').value=h.email||'';document.getElementById('fh-site').value=h.site||'';document.getElementById('fh-obs').value=h.obs||'';document.getElementById('hospModalBg').classList.add('open');}
@@ -935,10 +969,10 @@ function closeHospModal(){document.getElementById('hospModalBg').classList.remov
 function saveHosp(){const n=document.getElementById('fh-nome').value.trim();if(!n){alert('Informe o nome.');return;}const obj={nome:n.toUpperCase(),cnpj:document.getElementById('fh-cnpj').value.trim(),telefone:document.getElementById('fh-tel').value.trim(),endereco:document.getElementById('fh-end').value.trim(),cidade:document.getElementById('fh-cidade').value.trim(),estado:document.getElementById('fh-uf').value,email:document.getElementById('fh-email').value.trim(),site:document.getElementById('fh-site').value.trim(),obs:document.getElementById('fh-obs').value.trim()};if(editHospId){const i=hospitais.findIndex(x=>x.id===editHospId);hospitais[i]={...hospitais[i],...obj};showToast('Hospital atualizado!');}else{hospitais.push({id:nextHosp++,...obj});showToast('Hospital cadastrado!');}closeHospModal();renderHosp();updateHospSel();scheduleSave();}
 function delHosp(id){if(!confirm('Excluir?'))return;hospitais=hospitais.filter(h=>h.id!==id);renderHosp();updateHospSel();scheduleSave();showToast('Removido.');}
 function renderHosp(){const q=(document.getElementById('hosp-q')||{}).value?.toLowerCase()||'';const g=document.getElementById('hosp-grid');const f=hospitais.filter(h=>!q||h.nome.toLowerCase().includes(q)||(h.cidade||'').toLowerCase().includes(q));if(!f.length){g.innerHTML='<div class="empty-grid">Nenhum hospital '+(hospitais.length?'encontrado':'cadastrado')+'.</div>';return;}g.innerHTML=f.map(h=>'<div class="card"><div class="card-name">'+h.nome+'</div>'+(h.cnpj?'<div class="card-sub">CNPJ: '+h.cnpj+'</div>':'')+(h.cidade?'<div style="font-size:12px;color:#185FA5;font-weight:600;">'+h.cidade+(h.estado?' - '+h.estado:'')+'</div>':'')+'<div class="card-info">'+(h.endereco?'<span>'+h.endereco+'</span>':'')+(h.telefone?'<span>Tel: '+h.telefone+'</span>':'')+(h.email?'<span>'+h.email+'</span>':'')+(h.site?'<span><a href="'+h.site+'" target="_blank" style="color:#185FA5;">Site</a></span>':'')+'</div><div class="card-actions"><button class="btn" style="font-size:11px;padding:4px 8px;" onclick="openHospModal('+h.id+')">Editar</button><button class="btn btn-red" onclick="delHosp('+h.id+')">Excluir</button></div></div>').join('');}
-function exportHospXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['Nome','CNPJ','Telefone','Endereco','Cidade','Estado','Email'],...hospitais.map(h=>[h.nome,h.cnpj,h.telefone,h.endereco,h.cidade,h.estado,h.email])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Hospitais',ws);XLSX.writeFile(wb,'hospitais.xlsx');showToast('Exportado!');}
+function exportHospXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['Nome','CNPJ','Telefone','Endereco','Cidade','Estado','Email'],...hospitais.map(h=>[h.nome,h.cnpj,h.telefone,h.endereco,h.cidade,h.estado,h.email])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Hospitais');XLSX.writeFile(wb,'hospitais.xlsx');showToast('Exportado!');}
 
 // NFS-e
-function importNfse(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});if(rows.length<2){showToast('Arquivo vazio.','error');return;}const hdr=rows[0].map(h=>String(h||'').trim());const ci=n=>hdr.findIndex(h=>h===n);const iNf=ci('Nº NFS-e'),iDt=ci('Data Hora NFE'),iSit=ci('Situação da Nota Fiscal'),iVs=ci('Valor dos Serviços'),iVt=ci('Valor Total Recebido'),iTom=ci('Razão Social do Tomador'),iGuia=ci('Nº da Guia'),iIss=ci('ISS Retido'),iRep=ci('Repasse do Plano de Saúde'),iDisc=ci('Discriminação dos Serviços');const imported=[];for(let i=1;i<rows.length;i++){const r=rows[i];const nf=String(r[iNf]||'').trim();if(!nf||nf==='0')continue;imported.push({nf,data:String(r[iDt]||'').trim(),situacao:String(r[iSit]||'T').trim(),tomador:String(r[iTom]||'').trim(),valor:parseFloat(String(r[iVs]||'0').replace(',','.'))||0,valorTotal:parseFloat(String(r[iVt]||'0').replace(',','.'))||0,iss:parseFloat(String(r[iIss]||'0').replace(',','.'))||0,repasse:parseFloat(String(r[iRep]||'0').replace(',','.'))||0,guia:String(r[iGuia]||'').trim(),discriminacao:String(r[iDisc]||'').trim().substring(0,200)});}if(!imported.length){showToast('Nenhuma NFS-e.','error');event.target.value='';return;}const modo=confirm(imported.length+' NFS-e(s).\nOK = Adicionar\nCancelar = Substituir');nfseData=modo?[...nfseData,...imported]:imported;try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}renderNfse();showToast(imported.length+' NFS-e(s) importada(s)!');}catch(err){showToast('Erro: '+err.message,'error');}event.target.value='';};reader.readAsArrayBuffer(file);}
+function importNfse(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});if(rows.length<2){showToast('Arquivo vazio.','error');return;}const hdr=rows[0].map(h=>String(h||'').trim());const ci=n=>hdr.findIndex(h=>h===n);const iNf=ci('Nº NFS-e'),iDt=ci('Data Hora NFE'),iSit=ci('Situação da Nota Fiscal'),iVs=ci('Valor dos Serviços'),iVt=ci('Valor Total Recebido'),iTom=ci('Razão Social do Tomador'),iGuia=ci('Nº da Guia'),iIss=ci('ISS Retido'),iRep=ci('Repasse do Plano de Saúde'),iDisc=ci('Discriminação dos Serviços');const imported=[];for(let i=1;i<rows.length;i++){const r=rows[i];const nf=String(r[iNf]||'').trim();if(!nf||nf==='0')continue;imported.push({nf,data:String(r[iDt]||'').trim(),situacao:String(r[iSit]||'T').trim(),tomador:String(r[iTom]||'').trim(),valor:parseFloat(String(r[iVs]||'0').replace(',','.'))||0,valorTotal:parseFloat(String(r[iVt]||'0').replace(',','.'))||0,iss:parseFloat(String(r[iIss]||'0').replace(',','.'))||0,repasse:parseFloat(String(r[iRep]||'0').replace(',','.'))||0,guia:String(r[iGuia]||'').trim(),discriminacao:String(r[iDisc]||'').trim().substring(0,200)});}if(!imported.length){showToast('Nenhuma NFS-e.','error');event.target.value='';return;}const modo=confirm(imported.length+' NFS-e(s).\nOK = Adicionar\nCancelar = Substituir');nfseData=modo?[...nfseData,...imported]:imported;try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}scheduleSave();renderNfse();showToast(imported.length+' NFS-e(s) importada(s)!');}catch(err){showToast('Erro: '+err.message,'error');}event.target.value='';};reader.readAsArrayBuffer(file);}
 
 let nfSortCol = null, nfSortDir = 1;
 
@@ -1046,6 +1080,7 @@ function toggleNfPago(nf){
   if(!nfseData[i].pago) nfseData[i].dataPag='';
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   const count = syncAtendimentosNf(nf, nfseData[i].pago, nfseData[i].dataPag||'');
+  scheduleSave();
   renderNfse();
   const msg = nfseData[i].pago
     ? 'NF '+nf+' marcada como paga! '+count+' atendimento(s) → PAGO'
@@ -1059,6 +1094,7 @@ function setNfDataPag(nf,val){
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   // Sincroniza data de pagamento nos atendimentos se já estiver paga
   if (nfseData[i].pago) syncAtendimentosNf(nf, true, val);
+  scheduleSave();
   showToast('Data de pagamento salva!');
 }
 
@@ -1066,27 +1102,28 @@ function delNfse(nf){
   if(!confirm('Excluir esta NFS-e?'))return;
   nfseData=nfseData.filter(n=>String(n.nf)!==String(nf));
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
+  scheduleSave();
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Valor','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.valor,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'NFSe',ws);XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Valor','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.valor,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
-  const byConv={},bySit={},byMed={};
-  records.forEach(r=>{byConv[r.convenio]=(byConv[r.convenio]||0)+1;bySit[r.situacao]=(bySit[r.situacao]||0)+1;if(r.medico)byMed[r.medico]=(byMed[r.medico]||0)+1;});
+  const byConv={},bySit={},byMed={},byHosp={};
+  records.forEach(r=>{byConv[r.convenio]=(byConv[r.convenio]||0)+1;bySit[r.situacao]=(bySit[r.situacao]||0)+1;if(r.medico)byMed[r.medico]=(byMed[r.medico]||0)+1;if(r.hospital)byHosp[r.hospital]=(byHosp[r.hospital]||0)+1;});
   const cls=['#185FA5','#059669','#b45309','#dc2626','#7c3aed','#0f766e'];
   function barC(title,obj,cs){const mx=Math.max(...Object.values(obj),1);return'<div class="chart-card"><h3>'+title+'</h3>'+Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>'<div class="bar-row"><div class="bar-lbl" title="'+k+'">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.round(v/mx*100)+'%;background:'+cs[i%cs.length]+';"></div></div><div class="bar-num">'+v+'</div></div>').join('')+'</div>';}
   const tot=records.length||1;let off=0;
   const paths=Object.entries(bySit).map(([k,v])=>{const pct=v/tot,r=46,cx=55,cy=55,a1=off*Math.PI*2-Math.PI/2,a2=(off+pct)*Math.PI*2-Math.PI/2,x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1),x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2),lg=pct>.5?1:0;off+=pct;return'<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+lg+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+(SIT_CLR[k]||'#888')+'" stroke="#fff" stroke-width="2"/>';}).join('');
   const pie='<div class="chart-card"><h3>Por situacao</h3><div class="pie-wrap"><svg width="110" height="110" viewBox="0 0 110 110">'+paths+'</svg><div class="legend">'+Object.entries(bySit).map(([k,v])=>'<div class="leg-row"><div class="leg-dot" style="background:'+(SIT_CLR[k]||'#888')+'"></div><span>'+(SIT_LBL[k]||k)+' — <strong>'+v+'</strong></span></div>').join('')+'</div></div></div>';
-  document.getElementById('charts').innerHTML=barC('Por convenio',byConv,cls)+pie+barC('Por medico',byMed,['#7c3aed','#0f766e','#dc2626','#b45309']);
+  document.getElementById('charts').innerHTML=barC('Por convenio',byConv,cls)+pie+barC('Por medico',byMed,['#7c3aed','#0f766e','#dc2626','#b45309'])+barC('Por hospital',byHosp,['#0891b2','#65a30d','#c026d3','#ea580c','#4338ca']);
 }
 
 // Import/Export Excel
 function importXLS(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});if(rows.length<2){showToast('Arquivo vazio.','error');return;}const hdr=rows[0].map(h=>String(h||'').toLowerCase().trim());const ci=n=>hdr.findIndex(h=>h.includes(n));const iP=ci('paciente'),iD=ci('data'),iC=ci('convenio'),iH=ci('hospital'),iAt=ci('atendimento'),iT=ci('tipo'),iM=ci('modalidade'),iS=ci('situa'),iMe=ci('medico'),iV=ci('valor'),iN=ci('nf'),iVn=ci('vinculo'),iL=ci('link'),iCt=ci('conta'),iO=ci('observa');function gc(r,i){return i>=0&&r[i]!==undefined?String(r[i]).trim():'';}function ms(s){s=(s||'').toUpperCase();if(s.includes('FATUR'))return'FATURADO';if(s.includes('PAGO'))return'PAGO';if(s.includes('CANCEL'))return'CANCELADO';return'EM ABERTO';}function pd(d){if(!d)return'';d=String(d).trim();const m=d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(m)return m[3]+'-'+m[2]+'-'+m[1];if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;return'';}const imp=[];for(let i=1;i<rows.length;i++){const r=rows[i];if(!r||!r[iP])continue;imp.push({id:nextAt++,paciente:gc(r,iP).toUpperCase(),data:pd(gc(r,iD)),convenio:gc(r,iC)||CONVENIOS[0],hospital:gc(r,iH).toUpperCase(),atendimento:gc(r,iAt),tipo:gc(r,iT)||'ELETIVA',modalidade:gc(r,iM)||'REPASSE',situacao:ms(gc(r,iS)),medico:gc(r,iMe),valor:gc(r,iV),nf:gc(r,iN),vinculo_nf:gc(r,iVn),link_nf:gc(r,iL),conta:gc(r,iCt),obs:gc(r,iO)});}if(!imp.length){showToast('Nenhum registro.','error');return;}records=[...records,...imp];render();scheduleSave();showToast(imp.length+' importados!');}catch(err){showToast('Erro: '+err.message,'error');}event.target.value='';};reader.readAsArrayBuffer(file);}
 
-function exportXLS(){if(!window.XLSX){alert('Aguarde.');return;}const headers=['Paciente','Data','Convenio','Hospital','N Atendimento','Tipo','Modalidade','Situacao','Medico','Valor (R$)','NF','Vinculo NF','Link NF','Conta','Data Pagamento','Observacao'];const rows=records.map(r=>[r.paciente,fd(r.data),r.convenio,r.hospital,r.atendimento,r.tipo,r.modalidade,SIT_LBL[r.situacao]||r.situacao,r.medico,r.valor?parseFloat(r.valor):'',r.nf||'',r.vinculo_nf||'',r.link_nf||'',r.conta||'',fd(r.datapag||''),r.obs||'']);const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Atendimentos',ws);const d=new Date();XLSX.writeFile(wb,'atendimentos_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');showToast('Excel exportado!');}
+function exportXLS(){if(!window.XLSX){alert('Aguarde.');return;}const headers=['Paciente','Data','Convenio','Hospital','N Atendimento','Tipo','Modalidade','Situacao','Medico','Valor (R$)','NF','Vinculo NF','Link NF','Conta','Data Pagamento','Observacao'];const rows=records.map(r=>[r.paciente,fd(r.data),r.convenio,r.hospital,r.atendimento,r.tipo,r.modalidade,SIT_LBL[r.situacao]||r.situacao,r.medico,r.valor?parseFloat(r.valor):'',r.nf||'',r.vinculo_nf||'',r.link_nf||'',r.conta||'',fd(r.datapag||''),r.obs||'']);const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Atendimentos');const d=new Date();XLSX.writeFile(wb,'atendimentos_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');showToast('Excel exportado!');}
 
 // ── Importar com IA ───────────────────────────────────────
 let _aiRows = [], _aiMap = {}, _aiMapped = [], _aiNfData = null, _aiMode = 'ATENDIMENTO';
@@ -1410,7 +1447,7 @@ function confirmAI() {
     });
     closeAI(); render(); scheduleSave();
     showToast('NF '+nf+': '+vinculados+' vinculado(s) -> FATURADO, '+novos+' novo(s)!');
-    records.forEach(r=>{ if(String(r.nf||'')===String(nf)) fbSalvarRegistro(r); });
+    records.forEach(r=>{ if(String(r.nf||'')===String(nf)) fbSalvarAtendimento(r); });
     _aiNfData=null; _aiMode='ATENDIMENTO';
     return;
   }
@@ -1886,7 +1923,44 @@ function salvarHTML() {
 
 // ── INICIALIZAR ───────────────────────────────────────────
 const BASE_HOSPITAIS = [
-  {id:1,[{"id": 1, "nome": "SAO LUIZ ITAIM", "cnpj": "", "telefone": "", "endereco": "Rua Amauri, 230 - Itaim Bibi", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.rededorsaoluiz.com.br/hospital/sao-luiz-itaim", "obs": ""}, {"id": 2, "nome": "SAO LUIZ VILLA LOBOS", "cnpj": "", "telefone": "", "endereco": "Av. Padre Jeronimo Bottoni, 150", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.rededorsaoluiz.com.br/hospital/sao-luiz-villa-lobos", "obs": ""}, {"id": 3, "nome": "SAO LUIZ JABAQUARA", "cnpj": "", "telefone": "", "endereco": "Rua Carlos Resende, 90 - Jabaquara", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.rededorsaoluiz.com.br/hospital/sao-luiz-jabaquara", "obs": ""}, {"id": 4, "nome": "SAO LUIZ MORUMBI", "cnpj": "", "telefone": "", "endereco": "Rua Apeninos, 76 - Paraiso", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.rededorsaoluiz.com.br/hospital/sao-luiz-morumbi", "obs": ""}, {"id": 5, "nome": "SANTA RITA", "cnpj": "", "telefone": "", "endereco": "Rua Feijo, 80 - Bela Vista", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "", "obs": ""}, {"id": 6, "nome": "LEFORTE LIBERDADE", "cnpj": "", "telefone": "", "endereco": "Rua dos Estudantes, 130 - Liberdade", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.leforte.com.br", "obs": ""}, {"id": 7, "nome": "LEFORTE MORUMBI", "cnpj": "", "telefone": "", "endereco": "Av. Jorge Joao Saad, 920 - Morumbi", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.leforte.com.br", "obs": ""}, {"id": 8, "nome": "NOVE DE JULHO", "cnpj": "", "telefone": "", "endereco": "Rua Claudio Soares, 115 - Pinheiros", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.h9j.com.br", "obs": ""}, {"id": 9, "nome": "SANTA CATARINA", "cnpj": "", "telefone": "", "endereco": "Av. Paulista, 200 - Bela Vista", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "", "obs": ""}, {"id": 10, "nome": "SAMARITANO PAULISTA", "cnpj": "", "telefone": "", "endereco": "Rua Conselheiro Brotero, 1486 - Higienopolis", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.samaritano.org.br", "obs": ""}, {"id": 11, "nome": "OSWALDO CRUZ", "cnpj": "", "telefone": "", "endereco": "Rua Treze de Maio, 1815 - Paraiso", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.hospitaloswaldocruz.org.br", "obs": ""}, {"id": 12, "nome": "SAHA", "cnpj": "", "telefone": "", "endereco": "", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "", "obs": ""}, {"id": 13, "nome": "SAO CAMILO", "cnpj": "", "telefone": "", "endereco": "Av. Nazare, 1100 - Ipiranga", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.saocamilosp.org.br", "obs": ""}, {"id": 14, "nome": "VILA NOVA STAR", "cnpj": "", "telefone": "", "endereco": "Rua Dr. Alceu de Campos Rodrigues, 126 - Vila Nova Conceicao", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.rededorsaoluiz.com.br/hospital/vila-nova-star", "obs": "Rede D Or"}, {"id": 15, "nome": "BENEFICENCIA PORTUGUESA", "cnpj": "", "telefone": "", "endereco": "Rua Maestro Cardim, 769 - Bela Vista", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.beneficenciaportuguesasp.com.br", "obs": ""}, {"id": 16, "nome": "ALVORADA", "cnpj": "", "telefone": "", "endereco": "Rua Voluntarios da Patria, 4227 - Santana", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "", "obs": ""}, {"id": 17, "nome": "ADVENTISTA", "cnpj": "", "telefone": "", "endereco": "Estrada de Itapecerica, 3900 - Campo Limpo", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.hospitaladventistadesp.com.br", "obs": ""}, {"id": 18, "nome": "BLANC", "cnpj": "", "telefone": "", "endereco": "Av. Brasil, 953 - Jardim America", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.leblanc.com.br", "obs": "Centro Cirurgico"}, {"id": 19, "nome": "AACD", "cnpj": "", "telefone": "", "endereco": "Rua Professor Atilio Innocenti, 619 - Vila Olimpia", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "https://www.aacd.org.br", "obs": ""}, {"id": 20, "nome": "A. FRANCO", "cnpj": "", "telefone": "", "endereco": "", "cidade": "Sao Paulo", "estado": "SP", "email": "", "site": "", "obs": ""}]), ...novos];
+  {id:1,  nome:'SAO LUIZ ITAIM',            cnpj:'', telefone:'', endereco:'Rua Amauri, 230 - Itaim Bibi', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.rededorsaoluiz.com.br/hospital/sao-luiz-itaim', obs:''},
+  {id:2,  nome:'SAO LUIZ VILLA LOBOS',       cnpj:'', telefone:'', endereco:'Av. Padre Jeronimo Bottoni, 150', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.rededorsaoluiz.com.br/hospital/sao-luiz-villa-lobos', obs:''},
+  {id:3,  nome:'SAO LUIZ JABAQUARA',         cnpj:'', telefone:'', endereco:'Rua Carlos Resende, 90 - Jabaquara', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.rededorsaoluiz.com.br/hospital/sao-luiz-jabaquara', obs:''},
+  {id:4,  nome:'SAO LUIZ MORUMBI',           cnpj:'', telefone:'', endereco:'Rua Apeninos, 76 - Paraiso', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.rededorsaoluiz.com.br/hospital/sao-luiz-morumbi', obs:''},
+  {id:5,  nome:'SANTA RITA',                 cnpj:'', telefone:'', endereco:'Rua Feijo, 80 - Bela Vista', cidade:'Sao Paulo', estado:'SP', email:'', site:'', obs:''},
+  {id:6,  nome:'LEFORTE LIBERDADE',          cnpj:'', telefone:'', endereco:'Rua dos Estudantes, 130 - Liberdade', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.leforte.com.br', obs:''},
+  {id:7,  nome:'LEFORTE MORUMBI',            cnpj:'', telefone:'', endereco:'Av. Jorge Joao Saad, 920 - Morumbi', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.leforte.com.br', obs:''},
+  {id:8,  nome:'NOVE DE JULHO',              cnpj:'', telefone:'', endereco:'Rua Claudio Soares, 115 - Pinheiros', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.h9j.com.br', obs:''},
+  {id:9,  nome:'SANTA CATARINA',             cnpj:'', telefone:'', endereco:'Av. Paulista, 200 - Bela Vista', cidade:'Sao Paulo', estado:'SP', email:'', site:'', obs:''},
+  {id:10, nome:'SAMARITANO PAULISTA',        cnpj:'', telefone:'', endereco:'Rua Conselheiro Brotero, 1486 - Higienopolis', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.samaritano.org.br', obs:''},
+  {id:11, nome:'OSWALDO CRUZ',               cnpj:'', telefone:'', endereco:'Rua Treze de Maio, 1815 - Paraiso', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.hospitaloswaldocruz.org.br', obs:''},
+  {id:12, nome:'SAHA',                       cnpj:'', telefone:'', endereco:'', cidade:'Sao Paulo', estado:'SP', email:'', site:'', obs:''},
+  {id:13, nome:'SAO CAMILO',                 cnpj:'', telefone:'', endereco:'Av. Nazare, 1100 - Ipiranga', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.saocamilosp.org.br', obs:''},
+  {id:14, nome:'VILA NOVA STAR',             cnpj:'', telefone:'', endereco:'Rua Dr. Alceu de Campos Rodrigues, 126 - Vila Nova Conceicao', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.rededorsaoluiz.com.br/hospital/vila-nova-star', obs:'Rede D Or'},
+  {id:15, nome:'BENEFICENCIA PORTUGUESA',    cnpj:'', telefone:'', endereco:'Rua Maestro Cardim, 769 - Bela Vista', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.beneficenciaportuguesasp.com.br', obs:''},
+  {id:16, nome:'ALVORADA',                   cnpj:'', telefone:'', endereco:'Rua Voluntarios da Patria, 4227 - Santana', cidade:'Sao Paulo', estado:'SP', email:'', site:'', obs:''},
+  {id:17, nome:'ADVENTISTA',                 cnpj:'', telefone:'', endereco:'Estrada de Itapecerica, 3900 - Campo Limpo', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.hospitaladventistadesp.com.br', obs:''},
+  {id:18, nome:'BLANC',                      cnpj:'', telefone:'', endereco:'Av. Brasil, 953 - Jardim America', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.leblanc.com.br', obs:'Centro Cirurgico'},
+  {id:19, nome:'AACD',                       cnpj:'', telefone:'', endereco:'Rua Professor Atilio Innocenti, 619 - Vila Olimpia', cidade:'Sao Paulo', estado:'SP', email:'', site:'https://www.aacd.org.br', obs:''},
+  {id:20, nome:'A. FRANCO',                  cnpj:'', telefone:'', endereco:'', cidade:'Sao Paulo', estado:'SP', email:'', site:'', obs:''},
+];
+
+loadExtras();
+// Pre-carregar hospitais base se ainda nao existirem
+(function(){
+  try {
+    const saved = localStorage.getItem(K_HOS);
+    if (!saved || JSON.parse(saved).h?.length === 0) {
+      hospitais = [...BASE_HOSPITAIS];
+      nextHosp = BASE_HOSPITAIS.length + 1;
+      localStorage.setItem(K_HOS, JSON.stringify({h:hospitais, n:nextHosp}));
+    } else {
+      const d = JSON.parse(saved);
+      // Mescla: adiciona hospitais base que ainda nao existem
+      const existentes = new Set((d.h||[]).map(h=>h.nome));
+      const novos = BASE_HOSPITAIS.filter(h=>!existentes.has(h.nome));
+      if (novos.length > 0) {
+        hospitais = [...(d.h||[]), ...novos];
         nextHosp = Math.max(d.n||1, ...hospitais.map(h=>h.id+1));
         localStorage.setItem(K_HOS, JSON.stringify({h:hospitais, n:nextHosp}));
       }
