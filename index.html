@@ -480,25 +480,27 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
       <input type="file" id="nfse-file" accept=".xlsx,.xls" style="display:none" onchange="importNfse(event)"/>
     </div>
   </div>
-  <div class="nfse-stats" id="nfse-stats" style="grid-template-columns:repeat(5,1fr);"></div>
+  <div class="nfse-stats" id="nfse-stats" style="grid-template-columns:repeat(6,1fr);"></div>
   <div class="tbl-wrap">
     <table>
       <thead>
         <tr>
-          <th style="width:9%" onclick="sortNfse('nf')">N NFS-e <span id="nfsort-nf" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:11%" onclick="sortNfse('data')">Data Emissao <span id="nfsort-data" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:27%" onclick="sortNfse('tomador')">Tomador <span id="nfsort-tomador" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:11%" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:8%" onclick="sortNfse('situacao')">Situacao <span id="nfsort-situacao" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:10%" onclick="sortNfse('pago')">Pago <span id="nfsort-pago" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:12%" onclick="sortNfse('dataPag')">Data Pagamento <span id="nfsort-dataPag" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:12%">Acao</th>
+          <th style="width:8%" onclick="sortNfse('nf')">N NFS-e <span id="nfsort-nf" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:10%" onclick="sortNfse('data')">Data Emissao <span id="nfsort-data" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:22%" onclick="sortNfse('tomador')">Tomador <span id="nfsort-tomador" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:9%" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:10%" title="Valor com desconto de 4,65% (PIS+COFINS+CSLL)">Valor Liquido</th>
+          <th style="width:7%" onclick="sortNfse('situacao')">Situacao <span id="nfsort-situacao" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:8%" onclick="sortNfse('pago')">Pago <span id="nfsort-pago" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:11%" onclick="sortNfse('dataPag')">Data Pagamento <span id="nfsort-dataPag" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:15%">Acao</th>
         </tr>
         <tr id="nfse-filter-row">
           <td><input id="nfil-nf" placeholder="N NF..." oninput="renderNfse()"/></td>
           <td><input id="nfil-data" type="date" oninput="renderNfse()"/></td>
           <td><input id="nfil-tom" placeholder="Tomador..." oninput="renderNfse()"/></td>
           <td><input id="nfil-val" placeholder="Valor..." oninput="renderNfse()"/></td>
+          <td></td>
           <td><select id="nfil-sit" onchange="renderNfse()"><option value="">Todas</option><option value="T">Normal</option><option value="C">Cancelada</option></select></td>
           <td><select id="nfil-pago" onchange="renderNfse()"><option value="">Todos</option><option value="S">Pago</option><option value="N">Pendente</option></select></td>
           <td><input id="nfil-datapag" type="date" oninput="renderNfse()"/></td>
@@ -1027,15 +1029,18 @@ function renderNfse(){
   }
   const tot=nfseData.length,norm=nfseData.filter(n=>n.situacao!=='C').length,canc=nfseData.filter(n=>n.situacao==='C').length;
   const tv=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor,0);
+  const TAXA_DESCONTO=0.0465;
+  const tvLiq=tv*(1-TAXA_DESCONTO);
   const pagas=nfseData.filter(n=>n.pago).length;
   document.getElementById('nfse-stats').innerHTML=
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Total NFS-e</div><div class="nfse-stat-val">'+tot+'</div></div>'+
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Normais</div><div class="nfse-stat-val" style="color:#1B7A4F">'+norm+'</div></div>'+
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Canceladas</div><div class="nfse-stat-val" style="color:#7A2E2E">'+canc+'</div></div>'+
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Pagas</div><div class="nfse-stat-val" style="color:#6237C9">'+pagas+'</div></div>'+
-    '<div class="nfse-stat"><div class="nfse-stat-lbl">A receber</div><div class="nfse-stat-val" style="font-size:14px;padding-top:4px;">'+fv(tv)+'</div></div>';
+    '<div class="nfse-stat"><div class="nfse-stat-lbl">A receber</div><div class="nfse-stat-val" style="font-size:14px;padding-top:4px;">'+fv(tv)+'</div></div>'+
+    '<div class="nfse-stat"><div class="nfse-stat-lbl" title="Descontados 4,65% (PIS+COFINS+CSLL)">Liquido a receber</div><div class="nfse-stat-val" style="font-size:14px;padding-top:4px;color:#0F6E63">'+fv(tvLiq)+'</div></div>';
   const tbody=document.getElementById('nfse-tbody');
-  if(!list.length){tbody.innerHTML='<tr><td colspan="8" class="empty">'+(nfseData.length?'Nenhuma com esses filtros.':'Nenhuma NFS-e carregada.')+'</td></tr>';return;}
+  if(!list.length){tbody.innerHTML='<tr><td colspan="9" class="empty">'+(nfseData.length?'Nenhuma com esses filtros.':'Nenhuma NFS-e carregada.')+'</td></tr>';return;}
   tbody.innerHTML=list.map(n=>{
     const pagoChk = n.pago
       ? `<span style="background:#DCF3E7;color:#1B7A4F;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;cursor:pointer;" onclick="toggleNfPago('${n.nf}')">✅ Pago</span>`
@@ -1043,11 +1048,13 @@ function renderNfse(){
     const dataPag = n.pago
       ? `<input type="date" value="${n.dataPag||''}" onchange="setNfDataPag('${n.nf}',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #D8DDD7;border-radius:5px;font-family:inherit;width:100%;"/>`
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
+    const valorLiquido = n.valor ? n.valor*(1-0.0465) : 0;
     return '<tr style="'+(n.situacao==='C'?'opacity:.55':'')+'">'+
       '<td><strong>'+n.nf+'</strong></td>'+
       '<td>'+n.data+'</td>'+
       '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+'</td>'+
       '<td>'+fv(n.valor)+'</td>'+
+      '<td style="color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
       '<td>'+(n.situacao==='C'?'<span class="badge-cancelada">Cancelada</span>':'<span class="badge-normal">Normal</span>')+'</td>'+
       '<td>'+pagoChk+'</td>'+
       '<td>'+dataPag+'</td>'+
@@ -1106,7 +1113,7 @@ function delNfse(nf){
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Valor','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.valor,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Valor','Valor Liquido (4,65%)','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.valor,n.valor?+(n.valor*(1-0.0465)).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
