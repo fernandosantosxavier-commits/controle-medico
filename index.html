@@ -418,7 +418,7 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
           <th style="width:7%">Modalidade<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:9%" onclick="sortBy('situacao')">Situacao &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:7%" onclick="sortBy('medico')">Medico &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
-          <th style="width:6%" onclick="sortBy('valor')">Valor &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
+          <th style="width:6%;text-align:center" onclick="sortBy('valor')">Valor &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:5%">NF<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:5%">Link NF</th>
           <th style="width:3%">Obs</th>
@@ -488,8 +488,8 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
           <th style="width:8%" onclick="sortNfse('nf')">N NFS-e <span id="nfsort-nf" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:10%" onclick="sortNfse('data')">Data Emissao <span id="nfsort-data" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:22%" onclick="sortNfse('tomador')">Tomador <span id="nfsort-tomador" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:9%" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:10%" title="Valor com desconto de 4,65% (PIS+COFINS+CSLL)">Valor Liquido</th>
+          <th style="width:9%;text-align:center" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
+          <th style="width:10%;text-align:center" title="Valor com desconto de 4,65% (PIS+COFINS+CSLL)">Valor Liquido</th>
           <th style="width:7%" onclick="sortNfse('situacao')">Situacao <span id="nfsort-situacao" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:8%" onclick="sortNfse('pago')">Pago <span id="nfsort-pago" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:11%" onclick="sortNfse('dataPag')">Data Pagamento <span id="nfsort-dataPag" style="font-size:9px;opacity:.6;">⇅</span></th>
@@ -875,7 +875,7 @@ function render() {
       ['EM ABERTO','FATURADO','PAGO','CANCELADO'].map(s=>'<option value="'+s+'"'+(r.situacao===s?' selected':'')+'>'+SIT_LBL[s]+'</option>').join('')+
     '</select></td>'+
     '<td title="'+(r.medico||'')+'">'+(r.medico||'')+'</td>'+
-    '<td style="font-size:11px;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
+    '<td style="font-size:11px;text-align:right;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
     '<td>'+(r.nf?'<span style="background:#eff6ff;color:#1e40af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid #bfdbfe;">'+r.nf+'</span>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.link_nf?'<a href="'+r.link_nf+'" target="_blank" onclick="event.stopPropagation()" style="background:#E8F6EE;border:1px solid #9FDCB9;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;color:#1B7A4F;text-decoration:none;">Abrir</a>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.obs?'<span title="'+r.obs.replace(/"/g,"'")+'" style="cursor:help;">&#128203;</span>':'')+'</td>'+
@@ -1030,7 +1030,7 @@ function renderNfse(){
   const tot=nfseData.length,norm=nfseData.filter(n=>n.situacao!=='C').length,canc=nfseData.filter(n=>n.situacao==='C').length;
   const tv=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor,0);
   const TAXA_DESCONTO=0.0465;
-  const tvLiq=tv*(1-TAXA_DESCONTO);
+  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+(n.cpf?n.valor:n.valor*(1-TAXA_DESCONTO)),0);
   const pagas=nfseData.filter(n=>n.pago).length;
   document.getElementById('nfse-stats').innerHTML=
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Total NFS-e</div><div class="nfse-stat-val">'+tot+'</div></div>'+
@@ -1048,13 +1048,16 @@ function renderNfse(){
     const dataPag = n.pago
       ? `<input type="date" value="${n.dataPag||''}" onchange="setNfDataPag('${n.nf}',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #D8DDD7;border-radius:5px;font-family:inherit;width:100%;"/>`
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
-    const valorLiquido = n.valor ? n.valor*(1-0.0465) : 0;
+    const valorLiquido = n.valor ? (n.cpf ? n.valor : n.valor*(1-0.0465)) : 0;
+    const cpfTag = n.cpf
+      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CNPJ (com retencao)">CPF sem ret.</span>`
+      : `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CPF (sem retencao)">CNPJ</span>`;
     return '<tr style="'+(n.situacao==='C'?'opacity:.55':'')+'">'+
       '<td><strong>'+n.nf+'</strong></td>'+
       '<td>'+n.data+'</td>'+
-      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+'</td>'+
-      '<td>'+fv(n.valor)+'</td>'+
-      '<td style="color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
+      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+cpfTag+'</td>'+
+      '<td style="text-align:right">'+fv(n.valor)+'</td>'+
+      '<td style="text-align:right;color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
       '<td>'+(n.situacao==='C'?'<span class="badge-cancelada">Cancelada</span>':'<span class="badge-normal">Normal</span>')+'</td>'+
       '<td>'+pagoChk+'</td>'+
       '<td>'+dataPag+'</td>'+
@@ -1105,6 +1108,15 @@ function setNfDataPag(nf,val){
   showToast('Data de pagamento salva!');
 }
 
+function toggleNfCpf(nf){
+  const i=nfseData.findIndex(n=>String(n.nf)===String(nf)); if(i<0)return;
+  nfseData[i].cpf=!nfseData[i].cpf;
+  try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
+  scheduleSave();
+  renderNfse();
+  showToast(nfseData[i].cpf ? 'NF '+nf+': tomador CPF, sem retencao.' : 'NF '+nf+': tomador CNPJ, com retencao de 4,65%.');
+}
+
 function delNfse(nf){
   if(!confirm('Excluir esta NFS-e?'))return;
   nfseData=nfseData.filter(n=>String(n.nf)!==String(nf));
@@ -1113,7 +1125,7 @@ function delNfse(nf){
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Valor','Valor Liquido (4,65%)','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.valor,n.valor?+(n.valor*(1-0.0465)).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Tipo Tomador','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.cpf?'CPF':'CNPJ',n.valor,n.valor?+(n.cpf?n.valor:n.valor*(1-0.0465)).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
