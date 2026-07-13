@@ -705,7 +705,7 @@ function showToast(msg, type='success') {
 
 // ── Helpers ───────────────────────────────────────────────
 function fd(d) { if(!d)return''; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function fv(v) { if(!v&&v!==0)return'--'; return'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+function fv(v) { if(!v&&v!==0)return'--'; return''+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
 function sitBadge(s) { return '<span class="badge '+(SIT_CLS[s]||'b-ab')+'">'+(SIT_LBL[s]||s)+'</span>'; }
 function tipoBadge(t) { return t==='ELETIVA'?'<span class="badge b-el">Eletiva</span>':'<span class="badge b-ur">Urgencia</span>'; }
 
@@ -766,7 +766,7 @@ function stats() {
     '<div class="stat"><div class="stat-lbl">Em aberto</div><div class="stat-val" style="color:#B5720E">'+ab+'</div></div>'+
     '<div class="stat"><div class="stat-lbl">Faturado</div><div class="stat-val" style="color:#6237C9">'+ft+'</div></div>'+
     '<div class="stat"><div class="stat-lbl">Pago</div><div class="stat-val" style="color:#1B7A4F">'+pg+'</div></div>'+
-    '<div class="stat"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:15px;padding-top:4px;">'+(tv?'R$ '+tv.toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</div></div>';
+    '<div class="stat"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:15px;padding-top:4px;">'+(tv?''+tv.toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</div></div>';
 }
 
 // ── Dashboard ─────────────────────────────────────────────
@@ -789,9 +789,9 @@ function renderDash() {
   document.getElementById('dash-content').innerHTML=
     '<div class="dash-grid4">'+
       '<div class="dash-card"><div class="dash-lbl">Este mes</div><div class="dash-val">'+doMes.length+'</div><div class="dash-sub">atendimentos</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Em aberto</div><div class="dash-val" style="color:#B5720E">'+ab.length+'</div><div class="dash-sub">'+(vAb?'R$ '+vAb.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Faturado</div><div class="dash-val" style="color:#6237C9">'+ft.length+'</div><div class="dash-sub">'+(vFt?'R$ '+vFt.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Pago</div><div class="dash-val" style="color:#1B7A4F">'+pg.length+'</div><div class="dash-sub">'+(vPg?'R$ '+vPg.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Em aberto</div><div class="dash-val" style="color:#B5720E">'+ab.length+'</div><div class="dash-sub">'+(vAb?''+vAb.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Faturado</div><div class="dash-val" style="color:#6237C9">'+ft.length+'</div><div class="dash-sub">'+(vFt?''+vFt.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Pago</div><div class="dash-val" style="color:#1B7A4F">'+pg.length+'</div><div class="dash-sub">'+(vPg?''+vPg.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
     '</div>'+
     '<div class="dash-card" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
       '<div><div class="dash-lbl">NFS-e Prefeitura SP</div><div class="dash-val" style="font-size:18px;">'+nfNorm.length+' notas &mdash; '+fv(nfNorm.reduce((a,n)=>a+n.valor,0))+'</div></div>'+
@@ -807,7 +807,7 @@ function renderDash() {
     '<div style="overflow-x:auto;">'+
     '<table style="width:100%;font-size:12px;border-collapse:collapse;min-width:520px;">'+
     '<tr style="background:#F5F6F3;"><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Paciente</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Data</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Convenio</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Situacao</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Valor</th></tr>'+
-    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #EDEFEC;"><td style="padding:6px 8px;white-space:nowrap;">'+r.paciente+'</td><td style="padding:6px 8px;white-space:nowrap;">'+fd(r.data)+'</td><td style="padding:6px 8px;white-space:nowrap;">'+r.convenio+'</td><td style="padding:6px 8px;white-space:nowrap;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;white-space:nowrap;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
+    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #EDEFEC;"><td style="padding:6px 8px;white-space:nowrap;">'+r.paciente+'</td><td style="padding:6px 8px;white-space:nowrap;">'+fd(r.data)+'</td><td style="padding:6px 8px;white-space:nowrap;">'+r.convenio+'</td><td style="padding:6px 8px;white-space:nowrap;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;white-space:nowrap;">'+(r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
     '</table></div></div>';
 }
 
@@ -875,7 +875,7 @@ function render() {
       ['EM ABERTO','FATURADO','PAGO','CANCELADO'].map(s=>'<option value="'+s+'"'+(r.situacao===s?' selected':'')+'>'+SIT_LBL[s]+'</option>').join('')+
     '</select></td>'+
     '<td title="'+(r.medico||'')+'">'+(r.medico||'')+'</td>'+
-    '<td style="font-size:11px;text-align:right;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
+    '<td style="font-size:11px;text-align:right;">'+(r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
     '<td>'+(r.nf?'<span style="background:#eff6ff;color:#1e40af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid #bfdbfe;">'+r.nf+'</span>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.link_nf?'<a href="'+r.link_nf+'" target="_blank" onclick="event.stopPropagation()" style="background:#E8F6EE;border:1px solid #9FDCB9;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;color:#1B7A4F;text-decoration:none;">Abrir</a>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.obs?'<span title="'+r.obs.replace(/"/g,"'")+'" style="cursor:help;">&#128203;</span>':'')+'</td>'+
@@ -1702,7 +1702,7 @@ function toggleExpand(event, id) {
     expField('Modalidade', r.modalidade)+
     expField('Situacao', SIT_LBL[r.situacao]||r.situacao)+
     expField('Medico', r.medico)+
-    expField('Valor', r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+
+    expField('Valor', r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+
     expField('NF', r.nf||'--')+
     expField('Vinculo NF', r.vinculo_nf||'--')+
     expField('Conta', r.conta||'--')+
@@ -1806,7 +1806,7 @@ function detectDuplicates() {
         <span style="font-size:10px;color:#5B6B67;flex:1;">${fd(r.data)}</span>
         <span style="font-size:10px;color:#5B6B67;flex:1;">${r.convenio||'--'}</span>
         <span style="font-size:10px;color:#5B6B67;flex:1;">${r.atendimento||'--'}</span>
-        <span style="font-size:10px;color:#5B6B67;flex:1;">${r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--'}</span>
+        <span style="font-size:10px;color:#5B6B67;flex:1;">${r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--'}</span>
         <div style="display:flex;gap:4px;">
           <button class="btn" style="font-size:10px;padding:2px 7px;" onclick="openModal(${r.id})">&#9999;&#65039; Ver</button>
           <button class="btn btn-red" style="font-size:10px;padding:2px 7px;" onclick="delAt(${r.id});detectDuplicates()">&#128465; Excluir</button>
