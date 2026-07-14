@@ -128,9 +128,10 @@ window.addEventListener('load', () => {
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F5F6F3;color:#16211F;min-height:100vh;display:flex;}
 /* Sidebar */
 .sidebar{width:200px;min-width:200px;background:#10201E;min-height:100vh;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
-.sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid #1B2E2B;}
-.sidebar-logo h2{font-size:13px;font-weight:700;color:#fff;line-height:1.3;}
-.sidebar-logo p{font-size:10px;color:#5B7570;margin-top:3px;}
+.sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid #1B2E2B;position:relative;background:radial-gradient(ellipse at 25% 20%,rgba(56,189,248,.16),transparent 65%);overflow:hidden;}
+.sidebar-logo::after{content:'';position:absolute;top:-10px;left:14px;width:34px;height:34px;background:radial-gradient(circle,rgba(255,140,60,.55),transparent 70%);filter:blur(4px);pointer-events:none;}
+.sidebar-logo h2{font-size:13px;font-weight:700;color:#EAFBFF;line-height:1.3;text-shadow:0 0 10px rgba(56,189,248,.55),0 0 2px rgba(56,189,248,.9);position:relative;letter-spacing:.02em;}
+.sidebar-logo p{font-size:10px;color:#5B7570;margin-top:3px;position:relative;}
 .sidebar-nav{padding:.8rem 0;flex:1;overflow-y:auto;}
 .nav-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4A5E58;padding:8px 16px 4px;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:#8FA39D;font-size:12px;font-weight:500;border:none;background:none;font-family:inherit;width:100%;text-align:left;transition:all .15s;border-left:3px solid transparent;}
@@ -285,7 +286,7 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
 /* Mobile top bar (hidden on desktop) */
 .mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:#10201E;align-items:center;gap:12px;padding:0 14px;z-index:150;}
 .mobile-menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
-.mobile-topbar-title{color:#fff;font-size:14px;font-weight:700;}
+.mobile-topbar-title{color:#EAFBFF;font-size:14px;font-weight:700;text-shadow:0 0 8px rgba(56,189,248,.6);}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
 .sidebar-overlay.open{display:block;}
 @media(max-width:900px){
@@ -418,7 +419,7 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
           <th style="width:7%">Modalidade<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:9%" onclick="sortBy('situacao')">Situacao &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:7%" onclick="sortBy('medico')">Medico &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
-          <th style="width:6%" onclick="sortBy('valor')">Valor &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
+          <th style="width:6%;text-align:center" onclick="sortBy('valor')">Valor &#8645;<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:5%">NF<span class="th-resize" onclick="event.stopPropagation()"></span></th>
           <th style="width:5%">Link NF</th>
           <th style="width:3%">Obs</th>
@@ -489,7 +490,7 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
           <th style="width:10%" onclick="sortNfse('data')">Data Emissao <span id="nfsort-data" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:22%" onclick="sortNfse('tomador')">Tomador <span id="nfsort-tomador" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:9%;text-align:center" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:10%;text-align:center" title="Valor com desconto de 4,65% (PIS+COFINS+CSLL)">Valor Liquido</th>
+          <th style="width:10%;text-align:center" title="4,65% = PIS+COFINS+CSLL | 6,15% = + IRRF | CPF = sem retencao">Valor Liquido</th>
           <th style="width:7%" onclick="sortNfse('situacao')">Situacao <span id="nfsort-situacao" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:8%" onclick="sortNfse('pago')">Pago <span id="nfsort-pago" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:11%" onclick="sortNfse('dataPag')">Data Pagamento <span id="nfsort-dataPag" style="font-size:9px;opacity:.6;">⇅</span></th>
@@ -705,7 +706,7 @@ function showToast(msg, type='success') {
 
 // ── Helpers ───────────────────────────────────────────────
 function fd(d) { if(!d)return''; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function fv(v) { if(!v&&v!==0)return'--'; return'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+function fv(v) { if(!v&&v!==0)return'--'; return''+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
 function sitBadge(s) { return '<span class="badge '+(SIT_CLS[s]||'b-ab')+'">'+(SIT_LBL[s]||s)+'</span>'; }
 function tipoBadge(t) { return t==='ELETIVA'?'<span class="badge b-el">Eletiva</span>':'<span class="badge b-ur">Urgencia</span>'; }
 
@@ -766,7 +767,7 @@ function stats() {
     '<div class="stat"><div class="stat-lbl">Em aberto</div><div class="stat-val" style="color:#B5720E">'+ab+'</div></div>'+
     '<div class="stat"><div class="stat-lbl">Faturado</div><div class="stat-val" style="color:#6237C9">'+ft+'</div></div>'+
     '<div class="stat"><div class="stat-lbl">Pago</div><div class="stat-val" style="color:#1B7A4F">'+pg+'</div></div>'+
-    '<div class="stat"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:15px;padding-top:4px;">'+(tv?'R$ '+tv.toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</div></div>';
+    '<div class="stat"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:15px;padding-top:4px;">'+(tv?''+tv.toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</div></div>';
 }
 
 // ── Dashboard ─────────────────────────────────────────────
@@ -789,9 +790,9 @@ function renderDash() {
   document.getElementById('dash-content').innerHTML=
     '<div class="dash-grid4">'+
       '<div class="dash-card"><div class="dash-lbl">Este mes</div><div class="dash-val">'+doMes.length+'</div><div class="dash-sub">atendimentos</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Em aberto</div><div class="dash-val" style="color:#B5720E">'+ab.length+'</div><div class="dash-sub">'+(vAb?'R$ '+vAb.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Faturado</div><div class="dash-val" style="color:#6237C9">'+ft.length+'</div><div class="dash-sub">'+(vFt?'R$ '+vFt.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
-      '<div class="dash-card"><div class="dash-lbl">Pago</div><div class="dash-val" style="color:#1B7A4F">'+pg.length+'</div><div class="dash-sub">'+(vPg?'R$ '+vPg.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Em aberto</div><div class="dash-val" style="color:#B5720E">'+ab.length+'</div><div class="dash-sub">'+(vAb?''+vAb.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Faturado</div><div class="dash-val" style="color:#6237C9">'+ft.length+'</div><div class="dash-sub">'+(vFt?''+vFt.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
+      '<div class="dash-card"><div class="dash-lbl">Pago</div><div class="dash-val" style="color:#1B7A4F">'+pg.length+'</div><div class="dash-sub">'+(vPg?''+vPg.toLocaleString('pt-BR',{minimumFractionDigits:2}):'sem valor')+'</div></div>'+
     '</div>'+
     '<div class="dash-card" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
       '<div><div class="dash-lbl">NFS-e Prefeitura SP</div><div class="dash-val" style="font-size:18px;">'+nfNorm.length+' notas &mdash; '+fv(nfNorm.reduce((a,n)=>a+n.valor,0))+'</div></div>'+
@@ -807,7 +808,7 @@ function renderDash() {
     '<div style="overflow-x:auto;">'+
     '<table style="width:100%;font-size:12px;border-collapse:collapse;min-width:520px;">'+
     '<tr style="background:#F5F6F3;"><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Paciente</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Data</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Convenio</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Situacao</th><th style="padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;color:#5B6B67;">Valor</th></tr>'+
-    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #EDEFEC;"><td style="padding:6px 8px;white-space:nowrap;">'+r.paciente+'</td><td style="padding:6px 8px;white-space:nowrap;">'+fd(r.data)+'</td><td style="padding:6px 8px;white-space:nowrap;">'+r.convenio+'</td><td style="padding:6px 8px;white-space:nowrap;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;white-space:nowrap;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
+    [...records].reverse().slice(0,10).map(r=>'<tr style="border-bottom:1px solid #EDEFEC;"><td style="padding:6px 8px;white-space:nowrap;">'+r.paciente+'</td><td style="padding:6px 8px;white-space:nowrap;">'+fd(r.data)+'</td><td style="padding:6px 8px;white-space:nowrap;">'+r.convenio+'</td><td style="padding:6px 8px;white-space:nowrap;">'+sitBadge(r.situacao)+'</td><td style="padding:6px 8px;font-size:11px;white-space:nowrap;">'+(r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td></tr>').join('')+
     '</table></div></div>';
 }
 
@@ -875,7 +876,7 @@ function render() {
       ['EM ABERTO','FATURADO','PAGO','CANCELADO'].map(s=>'<option value="'+s+'"'+(r.situacao===s?' selected':'')+'>'+SIT_LBL[s]+'</option>').join('')+
     '</select></td>'+
     '<td title="'+(r.medico||'')+'">'+(r.medico||'')+'</td>'+
-    '<td style="font-size:11px;">'+(r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
+    '<td style="font-size:11px;text-align:right;">'+(r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+'</td>'+
     '<td>'+(r.nf?'<span style="background:#eff6ff;color:#1e40af;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid #bfdbfe;">'+r.nf+'</span>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.link_nf?'<a href="'+r.link_nf+'" target="_blank" onclick="event.stopPropagation()" style="background:#E8F6EE;border:1px solid #9FDCB9;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;color:#1B7A4F;text-decoration:none;">Abrir</a>':'--')+'</td>'+
     '<td style="text-align:center;">'+(r.obs?'<span title="'+r.obs.replace(/"/g,"'")+'" style="cursor:help;">&#128203;</span>':'')+'</td>'+
@@ -995,6 +996,11 @@ function clearNfseFilters(){
   renderNfse();
 }
 
+function taxaRetencao(n){
+  if(n.retencao==='4.65') return 0.0465;
+  if(n.retencao==='nenhuma' || (n.cpf && !n.retencao)) return 0;
+  return 0.0615; // padrao (CNPJ 6,15%)
+}
 function renderNfse(){
   const gv=id=>(document.getElementById(id)||{}).value||'';
   const fNf=gv('nfil-nf').toLowerCase(), fData=gv('nfil-data');
@@ -1030,7 +1036,7 @@ function renderNfse(){
   const tot=nfseData.length,norm=nfseData.filter(n=>n.situacao!=='C').length,canc=nfseData.filter(n=>n.situacao==='C').length;
   const tv=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor,0);
   const TAXA_DESCONTO=0.0465;
-  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+(n.cpf?n.valor:n.valor*(1-TAXA_DESCONTO)),0);
+  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor*(1-taxaRetencao(n)),0);
   const pagas=nfseData.filter(n=>n.pago).length;
   document.getElementById('nfse-stats').innerHTML=
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Total NFS-e</div><div class="nfse-stat-val">'+tot+'</div></div>'+
@@ -1048,14 +1054,16 @@ function renderNfse(){
     const dataPag = n.pago
       ? `<input type="date" value="${n.dataPag||''}" onchange="setNfDataPag('${n.nf}',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #D8DDD7;border-radius:5px;font-family:inherit;width:100%;"/>`
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
-    const valorLiquido = n.valor ? (n.cpf ? n.valor : n.valor*(1-0.0465)) : 0;
-    const cpfTag = n.cpf
-      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CNPJ (com retencao)">CPF sem ret.</span>`
-      : `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CPF (sem retencao)">CNPJ</span>`;
+    const valorLiquido = n.valor ? n.valor*(1-taxaRetencao(n)) : 0;
+    const retTag = n.retencao==='nenhuma'
+      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 6,15%">CPF sem ret.</span>`
+      : n.retencao==='4.65'
+      ? `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CPF sem retencao">CNPJ 4,65%</span>`
+      : `<span style="background:#FBEED9;color:#6B4610;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 4,65%">CNPJ 6,15%</span>`;
     return '<tr style="'+(n.situacao==='C'?'opacity:.55':'')+'">'+
       '<td><strong>'+n.nf+'</strong></td>'+
       '<td>'+n.data+'</td>'+
-      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+cpfTag+'</td>'+
+      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+retTag+'</td>'+
       '<td style="text-align:right">'+fv(n.valor)+'</td>'+
       '<td style="text-align:right;color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
       '<td>'+(n.situacao==='C'?'<span class="badge-cancelada">Cancelada</span>':'<span class="badge-normal">Normal</span>')+'</td>'+
@@ -1108,13 +1116,16 @@ function setNfDataPag(nf,val){
   showToast('Data de pagamento salva!');
 }
 
-function toggleNfCpf(nf){
+function cycleNfRetencao(nf){
   const i=nfseData.findIndex(n=>String(n.nf)===String(nf)); if(i<0)return;
-  nfseData[i].cpf=!nfseData[i].cpf;
+  const atual=nfseData[i].retencao||'6.15';
+  const prox = atual==='6.15' ? '4.65' : atual==='4.65' ? 'nenhuma' : '6.15';
+  nfseData[i].retencao=prox;
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   scheduleSave();
   renderNfse();
-  showToast(nfseData[i].cpf ? 'NF '+nf+': tomador CPF, sem retencao.' : 'NF '+nf+': tomador CNPJ, com retencao de 4,65%.');
+  const msg = prox==='nenhuma' ? 'NF '+nf+': tomador CPF, sem retencao.' : prox==='4.65' ? 'NF '+nf+': CNPJ, retencao de 4,65%.' : 'NF '+nf+': CNPJ, retencao de 6,15% (com IRRF).';
+  showToast(msg);
 }
 
 function delNfse(nf){
@@ -1125,7 +1136,7 @@ function delNfse(nf){
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Tipo Tomador','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.cpf?'CPF':'CNPJ',n.valor,n.valor?+(n.cpf?n.valor:n.valor*(1-0.0465)).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Retencao','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.retencao==='nenhuma'?'CPF (sem retencao)':n.retencao==='4.65'?'CNPJ 4,65%':'CNPJ 6,15%',n.valor,n.valor?+(n.valor*(1-taxaRetencao(n))).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
@@ -1702,7 +1713,7 @@ function toggleExpand(event, id) {
     expField('Modalidade', r.modalidade)+
     expField('Situacao', SIT_LBL[r.situacao]||r.situacao)+
     expField('Medico', r.medico)+
-    expField('Valor', r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+
+    expField('Valor', r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--')+
     expField('NF', r.nf||'--')+
     expField('Vinculo NF', r.vinculo_nf||'--')+
     expField('Conta', r.conta||'--')+
@@ -1806,7 +1817,7 @@ function detectDuplicates() {
         <span style="font-size:10px;color:#5B6B67;flex:1;">${fd(r.data)}</span>
         <span style="font-size:10px;color:#5B6B67;flex:1;">${r.convenio||'--'}</span>
         <span style="font-size:10px;color:#5B6B67;flex:1;">${r.atendimento||'--'}</span>
-        <span style="font-size:10px;color:#5B6B67;flex:1;">${r.valor?'R$ '+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--'}</span>
+        <span style="font-size:10px;color:#5B6B67;flex:1;">${r.valor?''+parseFloat(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'--'}</span>
         <div style="display:flex;gap:4px;">
           <button class="btn" style="font-size:10px;padding:2px 7px;" onclick="openModal(${r.id})">&#9999;&#65039; Ver</button>
           <button class="btn btn-red" style="font-size:10px;padding:2px 7px;" onclick="delAt(${r.id});detectDuplicates()">&#128465; Excluir</button>

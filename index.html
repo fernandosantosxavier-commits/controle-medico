@@ -490,7 +490,7 @@ tbody td{padding:7px 8px;color:#242E2B;overflow:hidden;text-overflow:ellipsis;wh
           <th style="width:10%" onclick="sortNfse('data')">Data Emissao <span id="nfsort-data" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:22%" onclick="sortNfse('tomador')">Tomador <span id="nfsort-tomador" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:9%;text-align:center" onclick="sortNfse('valor')">Valor <span id="nfsort-valor" style="font-size:9px;opacity:.6;">⇅</span></th>
-          <th style="width:10%;text-align:center" title="Valor com desconto de 4,65% (PIS+COFINS+CSLL)">Valor Liquido</th>
+          <th style="width:10%;text-align:center" title="4,65% = PIS+COFINS+CSLL | 6,15% = + IRRF | CPF = sem retencao">Valor Liquido</th>
           <th style="width:7%" onclick="sortNfse('situacao')">Situacao <span id="nfsort-situacao" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:8%" onclick="sortNfse('pago')">Pago <span id="nfsort-pago" style="font-size:9px;opacity:.6;">⇅</span></th>
           <th style="width:11%" onclick="sortNfse('dataPag')">Data Pagamento <span id="nfsort-dataPag" style="font-size:9px;opacity:.6;">⇅</span></th>
@@ -996,6 +996,11 @@ function clearNfseFilters(){
   renderNfse();
 }
 
+function taxaRetencao(n){
+  if(n.retencao==='6.15') return 0.0615;
+  if(n.retencao==='nenhuma' || (n.cpf && !n.retencao)) return 0;
+  return 0.0465; // padrao (CNPJ 4,65%)
+}
 function renderNfse(){
   const gv=id=>(document.getElementById(id)||{}).value||'';
   const fNf=gv('nfil-nf').toLowerCase(), fData=gv('nfil-data');
@@ -1031,7 +1036,7 @@ function renderNfse(){
   const tot=nfseData.length,norm=nfseData.filter(n=>n.situacao!=='C').length,canc=nfseData.filter(n=>n.situacao==='C').length;
   const tv=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor,0);
   const TAXA_DESCONTO=0.0465;
-  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+(n.cpf?n.valor:n.valor*(1-TAXA_DESCONTO)),0);
+  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor*(1-taxaRetencao(n)),0);
   const pagas=nfseData.filter(n=>n.pago).length;
   document.getElementById('nfse-stats').innerHTML=
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Total NFS-e</div><div class="nfse-stat-val">'+tot+'</div></div>'+
@@ -1049,14 +1054,16 @@ function renderNfse(){
     const dataPag = n.pago
       ? `<input type="date" value="${n.dataPag||''}" onchange="setNfDataPag('${n.nf}',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #D8DDD7;border-radius:5px;font-family:inherit;width:100%;"/>`
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
-    const valorLiquido = n.valor ? (n.cpf ? n.valor : n.valor*(1-0.0465)) : 0;
-    const cpfTag = n.cpf
-      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CNPJ (com retencao)">CPF sem ret.</span>`
-      : `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="toggleNfCpf('${n.nf}')" title="Clique para marcar como CPF (sem retencao)">CNPJ</span>`;
+    const valorLiquido = n.valor ? n.valor*(1-taxaRetencao(n)) : 0;
+    const retTag = n.retencao==='nenhuma'
+      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 4,65%">CPF sem ret.</span>`
+      : n.retencao==='6.15'
+      ? `<span style="background:#FBEED9;color:#6B4610;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CPF sem retencao">CNPJ 6,15%</span>`
+      : `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 6,15%">CNPJ 4,65%</span>`;
     return '<tr style="'+(n.situacao==='C'?'opacity:.55':'')+'">'+
       '<td><strong>'+n.nf+'</strong></td>'+
       '<td>'+n.data+'</td>'+
-      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+cpfTag+'</td>'+
+      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+retTag+'</td>'+
       '<td style="text-align:right">'+fv(n.valor)+'</td>'+
       '<td style="text-align:right;color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
       '<td>'+(n.situacao==='C'?'<span class="badge-cancelada">Cancelada</span>':'<span class="badge-normal">Normal</span>')+'</td>'+
@@ -1109,13 +1116,16 @@ function setNfDataPag(nf,val){
   showToast('Data de pagamento salva!');
 }
 
-function toggleNfCpf(nf){
+function cycleNfRetencao(nf){
   const i=nfseData.findIndex(n=>String(n.nf)===String(nf)); if(i<0)return;
-  nfseData[i].cpf=!nfseData[i].cpf;
+  const atual=nfseData[i].retencao||'4.65';
+  const prox = atual==='4.65' ? '6.15' : atual==='6.15' ? 'nenhuma' : '4.65';
+  nfseData[i].retencao=prox;
   try{localStorage.setItem(K_NF,JSON.stringify(nfseData));}catch(e){}
   scheduleSave();
   renderNfse();
-  showToast(nfseData[i].cpf ? 'NF '+nf+': tomador CPF, sem retencao.' : 'NF '+nf+': tomador CNPJ, com retencao de 4,65%.');
+  const msg = prox==='nenhuma' ? 'NF '+nf+': tomador CPF, sem retencao.' : prox==='6.15' ? 'NF '+nf+': CNPJ, retencao de 6,15% (com IRRF).' : 'NF '+nf+': CNPJ, retencao de 4,65%.';
+  showToast(msg);
 }
 
 function delNfse(nf){
@@ -1126,7 +1136,7 @@ function delNfse(nf){
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Tipo Tomador','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.cpf?'CPF':'CNPJ',n.valor,n.valor?+(n.cpf?n.valor:n.valor*(1-0.0465)).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Retencao','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.retencao==='nenhuma'?'CPF (sem retencao)':n.retencao==='6.15'?'CNPJ 6,15%':'CNPJ 4,65%',n.valor,n.valor?+(n.valor*(1-taxaRetencao(n))).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
