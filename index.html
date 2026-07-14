@@ -1056,16 +1056,16 @@ function renderNfse(){
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
     const valorLiquido = n.valor ? n.valor*(1-taxaRetencao(n)) : 0;
     const retTag = n.retencao==='nenhuma'
-      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 6,15%">CPF sem ret.</span>`
+      ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Sem retencao (CPF). Clique para avancar: 6,15%">0%</span>`
       : n.retencao==='4.65'
-      ? `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CPF sem retencao">CNPJ 4,65%</span>`
-      : `<span style="background:#FBEED9;color:#6B4610;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Clique para avancar: CNPJ 4,65%">CNPJ 6,15%</span>`;
+      ? `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Retencao 4,65% (CNPJ). Clique para avancar: sem retencao">4,65%</span>`
+      : `<span style="background:#FBEED9;color:#6B4610;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Retencao 6,15% (CNPJ). Clique para avancar: 4,65%">6,15%</span>`;
     return '<tr style="'+(n.situacao==='C'?'opacity:.55':'')+'">'+
       '<td><strong>'+n.nf+'</strong></td>'+
       '<td>'+n.data+'</td>'+
-      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+' '+retTag+'</td>'+
+      '<td title="'+n.tomador+'" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+n.tomador+'</td>'+
       '<td style="text-align:right">'+fv(n.valor)+'</td>'+
-      '<td style="text-align:right;color:#0F6E63;font-weight:600;">'+fv(valorLiquido)+'</td>'+
+      '<td style="text-align:right;color:#0F6E63;font-weight:600;"><div>'+fv(valorLiquido)+'</div><div style="margin-top:2px;">'+retTag+'</div></td>'+
       '<td>'+(n.situacao==='C'?'<span class="badge-cancelada">Cancelada</span>':'<span class="badge-normal">Normal</span>')+'</td>'+
       '<td>'+pagoChk+'</td>'+
       '<td>'+dataPag+'</td>'+
