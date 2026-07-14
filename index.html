@@ -1036,7 +1036,7 @@ function renderNfse(){
   const tot=nfseData.length,norm=nfseData.filter(n=>n.situacao!=='C').length,canc=nfseData.filter(n=>n.situacao==='C').length;
   const tv=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor,0);
   const TAXA_DESCONTO=0.0465;
-  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+n.valor*(1-taxaRetencao(n)),0);
+  const tvLiq=nfseData.filter(n=>n.situacao!=='C').reduce((a,n)=>a+(n.deducoes!=null?n.valor-n.deducoes:n.valor*(1-taxaRetencao(n))),0);
   const pagas=nfseData.filter(n=>n.pago).length;
   document.getElementById('nfse-stats').innerHTML=
     '<div class="nfse-stat"><div class="nfse-stat-lbl">Total NFS-e</div><div class="nfse-stat-val">'+tot+'</div></div>'+
@@ -1054,8 +1054,10 @@ function renderNfse(){
     const dataPag = n.pago
       ? `<input type="date" value="${n.dataPag||''}" onchange="setNfDataPag('${n.nf}',this.value)" style="font-size:10px;padding:2px 5px;border:1px solid #D8DDD7;border-radius:5px;font-family:inherit;width:100%;"/>`
       : `<span style="color:#9AA6A0;font-size:11px;">--</span>`;
-    const valorLiquido = n.valor ? n.valor*(1-taxaRetencao(n)) : 0;
-    const retTag = n.retencao==='nenhuma'
+    const valorLiquido = n.valor ? (n.deducoes!=null ? n.valor-n.deducoes : n.valor*(1-taxaRetencao(n))) : 0;
+    const retTag = n.deducoes!=null
+      ? `<span style="background:#E8F6EE;color:#155E3E;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;" title="Retencao exata (Prefeitura SP): PIS+COFINS+CSLL+IR+INSS">${n.valor?((n.deducoes/n.valor*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})):'0,00'}%</span>`
+      : n.retencao==='nenhuma'
       ? `<span style="background:#F1ECFB;color:#4527A0;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Sem retencao (CPF). Clique para avancar: 6,15%">0%</span>`
       : n.retencao==='4.65'
       ? `<span style="background:#EDEFEC;color:#5B6B67;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;cursor:pointer;white-space:nowrap;" onclick="cycleNfRetencao('${n.nf}')" title="Retencao 4,65% (CNPJ). Clique para avancar: sem retencao">4,65%</span>`
@@ -1136,7 +1138,7 @@ function delNfse(nf){
   renderNfse(); showToast('NFS-e removida.');
 }
 
-function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Retencao','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.retencao==='nenhuma'?'CPF (sem retencao)':n.retencao==='4.65'?'CNPJ 4,65%':'CNPJ 6,15%',n.valor,n.valor?+(n.valor*(1-taxaRetencao(n))).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
+function exportNfseXLS(){if(!window.XLSX)return;const ws=XLSX.utils.aoa_to_sheet([['N NFS-e','Data Emissao','Tomador','Retencao','Valor','Valor Liquido','Situacao','Pago','Data Pagamento'],...nfseData.map(n=>[n.nf,n.data,n.tomador,n.deducoes!=null?'Exata (Prefeitura)':n.retencao==='nenhuma'?'CPF (sem retencao)':n.retencao==='4.65'?'CNPJ 4,65%':'CNPJ 6,15%',n.valor,n.valor?+((n.deducoes!=null?n.valor-n.deducoes:n.valor*(1-taxaRetencao(n)))).toFixed(2):0,n.situacao==='C'?'Cancelada':'Normal',n.pago?'Sim':'Nao',n.dataPag||''])]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NFSe');XLSX.writeFile(wb,'nfse.xlsx');showToast('Exportado!');}
 
 // Graficos
 function renderCharts(){
