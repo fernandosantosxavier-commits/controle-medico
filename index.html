@@ -23,6 +23,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
+// Guarda uma "foto" do que ja foi enviado pra nuvem, pra so mandar o que mudou
+const lastSynced = { atendimentos: {}, medicos: {}, hospitais: {}, nfse: {} };
+function snapshotColecao(colName, items, keyFn) {
+  const map = {};
+  (Array.isArray(items) ? items : []).forEach(item => { map[String(keyFn(item))] = JSON.stringify(item); });
+  lastSynced[colName] = map;
+}
+
 function setStatus(txt, color) {
   const el = document.getElementById('fb-status');
   if (el) { el.textContent = txt; if (color) el.style.color = color; }
@@ -32,15 +40,37 @@ function setStatus(txt, color) {
 
 async function enviarColecao(colName, items, keyFn) {
   const arr = Array.isArray(items) ? items : [];
-  if (!arr.length) return;
+  const antes = lastSynced[colName] || {};
+  const atuaisIds = new Set();
+  const paraEnviar = [];
+  for (const item of arr) {
+    const id = String(keyFn(item));
+    atuaisIds.add(id);
+    const json = JSON.stringify(item);
+    if (antes[id] !== json) paraEnviar.push([id, item, json]);
+  }
+  const paraExcluir = Object.keys(antes).filter(id => !atuaisIds.has(id));
+  if (!paraEnviar.length && !paraExcluir.length) return 0;
+
   let batch = writeBatch(db);
   let count = 0;
-  for (const item of arr) {
-    batch.set(doc(db, colName, String(keyFn(item))), item);
+  for (const [id, item] of paraEnviar) {
+    batch.set(doc(db, colName, id), item);
     count++;
-    if (count === 499) { await batch.commit(); batch = writeBatch(db); count = 0; }
+    if (count === 490) { await batch.commit(); batch = writeBatch(db); count = 0; }
+  }
+  for (const id of paraExcluir) {
+    batch.delete(doc(db, colName, id));
+    count++;
+    if (count === 490) { await batch.commit(); batch = writeBatch(db); count = 0; }
   }
   if (count > 0) await batch.commit();
+
+  // Atualiza a foto do que agora esta sincronizado
+  const novoMapa = {};
+  for (const item of arr) novoMapa[String(keyFn(item))] = JSON.stringify(item);
+  lastSynced[colName] = novoMapa;
+  return paraEnviar.length + paraExcluir.length;
 }
 
 window.fbSincronizarTudo = async function() {
@@ -50,12 +80,13 @@ window.fbSincronizarTudo = async function() {
     const m = Array.isArray(window.medicos)   ? window.medicos   : [];
     const h = Array.isArray(window.hospitais) ? window.hospitais : [];
     const n = Array.isArray(window.nfseData)  ? window.nfseData  : [];
-    await enviarColecao('atendimentos', r, x => x.id);
-    await enviarColecao('medicos',      m, x => x.id);
-    await enviarColecao('hospitais',    h, x => x.id);
-    await enviarColecao('nfse',         n, x => x.nf);
+    const c1 = await enviarColecao('atendimentos', r, x => x.id);
+    const c2 = await enviarColecao('medicos',      m, x => x.id);
+    const c3 = await enviarColecao('hospitais',    h, x => x.id);
+    const c4 = await enviarColecao('nfse',         n, x => x.nf);
     setStatus('Nuvem', '#34D399');
-    if (window.showToast) showToast(r.length + ' atendimentos enviados para a nuvem!');
+    const total = c1+c2+c3+c4;
+    if (window.showToast && total>0) showToast(total + ' alteracao(oes) sincronizada(s)!');
   } catch(e) {
     console.error('fbSincronizarTudo error:', e);
     setStatus('Erro sync', '#E67373');
@@ -82,6 +113,7 @@ async function carregarDoFirestore() {
       rows.sort((a,b) => (a.id||0)-(b.id||0));
       window.records = rows;
       window.nextAt = Math.max(...rows.map(r => r.id||0), 0) + 1;
+      snapshotColecao('atendimentos', rows, x => x.id);
     }
     const medSnap = await getDocs(collection(db, 'medicos'));
     if (medSnap && !medSnap.empty) {
@@ -89,6 +121,7 @@ async function carregarDoFirestore() {
       medSnap.forEach(d => rows.push(d.data()));
       window.medicos = rows;
       window.nextMed = Math.max(...rows.map(r => r.id||0), 0) + 1;
+      snapshotColecao('medicos', rows, x => x.id);
     }
     const hosSnap = await getDocs(collection(db, 'hospitais'));
     if (hosSnap && !hosSnap.empty) {
@@ -96,6 +129,7 @@ async function carregarDoFirestore() {
       hosSnap.forEach(d => rows.push(d.data()));
       window.hospitais = rows;
       window.nextHosp = Math.max(...rows.map(r => r.id||0), 0) + 1;
+      snapshotColecao('hospitais', rows, x => x.id);
     }
     const nfSnap = await getDocs(collection(db, 'nfse'));
     if (nfSnap && !nfSnap.empty) {
@@ -103,6 +137,7 @@ async function carregarDoFirestore() {
       nfSnap.forEach(d => rows.push(d.data()));
       rows.sort((a,b) => (a.nf||0)-(b.nf||0));
       window.nfseData = rows;
+      snapshotColecao('nfse', rows, x => x.nf);
     }
     setStatus('Nuvem', '#34D399');
     if (window.render) {
